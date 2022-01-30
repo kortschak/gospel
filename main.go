@@ -89,6 +89,14 @@ misspelled words highlighted.
 				seen := make(map[string]bool)
 				for sc.Scan() {
 					text := sc.Text()
+					switch {
+					case strings.HasSuffix(text, "'s"):
+						text = strings.TrimSuffix(text, "'s")
+					case strings.HasSuffix(text, "'d"):
+						text = strings.TrimSuffix(text, "'d")
+					case strings.HasSuffix(text, "'th"):
+						text = strings.TrimSuffix(text, "'th")
+					}
 
 					if !(*ignoreUpper && allUpper(text)) && !spelling.IsCorrect(text) {
 						if !seen[text] {
@@ -195,12 +203,15 @@ type span struct {
 func (w *words) ScanWords(data []byte, atEOF bool) (advance int, token []byte, err error) {
 	start := 0
 	w.current.pos = w.current.end
-	for width := 0; start < len(data); start += width {
+	var prev rune
+	for width, i := 0, 0; start < len(data); start += width {
 		var r rune
 		r, width = utf8.DecodeRune(data[start:])
-		if !unicode.IsSpace(r) && !unicode.IsPunct(r) {
+		if !unicode.IsSpace(r) && !unicode.IsSymbol(r) && !isWordSplitPunct(prev, r, data[i+width:]) {
+			prev = r
 			break
 		}
+		prev = r
 	}
 	w.current.pos += start
 
@@ -208,10 +219,11 @@ func (w *words) ScanWords(data []byte, atEOF bool) (advance int, token []byte, e
 	for width, i := 0, start; i < len(data); i += width {
 		var r rune
 		r, width = utf8.DecodeRune(data[i:])
-		if unicode.IsSpace(r) || unicode.IsPunct(r) || unicode.IsSymbol(r) {
+		if unicode.IsSpace(r) || unicode.IsSymbol(r) || isWordSplitPunct(prev, r, data[i+width:]) {
 			w.current.end += i + width
 			return i + width, data[start:i], nil
 		}
+		prev = r
 	}
 	// If we're at EOF, we have a final, non-empty, non-terminated word. Return it.
 	if atEOF && len(data) > start {
@@ -221,6 +233,23 @@ func (w *words) ScanWords(data []byte, atEOF bool) (advance int, token []byte, e
 	// Request more data.
 	w.current.end = w.current.pos
 	return start, nil, nil
+}
+
+// isWordSplitPunct returns whether the previous, current and next runes
+// indicate that the current rune splits words.
+func isWordSplitPunct(prev, curr rune, next []byte) bool {
+	return curr != '_' && unicode.IsPunct(curr) && !isApostrophe(prev, curr, next)
+}
+
+// isApostrophe returns whether the current rune is an apostrophe. The heuristic
+// used is fairly simple and may not cover all cases correctly, but should handle
+// what we want here.
+func isApostrophe(last, curr rune, data []byte) bool {
+	if curr != '\'' {
+		return false
+	}
+	next, _ := utf8.DecodeRune(data)
+	return unicode.IsLetter(last) && unicode.IsLetter(next)
 }
 
 var knownWords = []string{
@@ -238,9 +267,9 @@ var knownWords = []string{
 	"gcc", "hostname", "http", "https", "localhost", "rpc", "symlink",
 	"symlinks",
 
-	"aix", "amd64", "arm64", "darwin", "freebsd", "illumos", "js", "linux",
-	"mips", "mips64", "mips64le", "mipsle", "netbsd", "openbsd", "ppc64",
-	"ppc64le", "riscv64", "s390x", "solaris", "wasm", "windows",
+	"aix", "amd64", "arm64", "darwin", "freebsd", "illumos", "ios", "js",
+	"linux", "mips", "mips64", "mips64le", "mipsle", "netbsd", "openbsd",
+	"ppc64", "ppc64le", "riscv64", "s390x", "solaris", "wasm", "windows",
 
 	"linkname", "nosplit", "toolchain",
 }
