@@ -9,8 +9,11 @@ package main
 
 import (
 	"bufio"
+	"errors"
 	"flag"
 	"fmt"
+	"go/ast"
+	"log"
 	"os"
 	"strings"
 	"unicode"
@@ -24,6 +27,7 @@ import (
 func main() {
 	show := flag.Bool("show", true, "print comment with repeats")
 	ignoreUpper := flag.Bool("ignore-upper", true, "ignore all-uppercase words")
+	ignoreIdents := flag.Bool("ignore-idents", true, "ignore words matching identifiers")
 	lang := flag.String("lang", "en_US", "language to use")
 	dicts := flag.String("dict-path", "/usr/share/hunspell", "directory containing hunspell dictionaries")
 	flag.Usage = func() {
@@ -49,9 +53,6 @@ misspelled words highlighted.
 		spelling.Add(w)
 	}
 
-	// TODO(kortschak): First walk the AST to add all identifiers to the
-	// run-time dictionary so we don't mark those words as misspelled.
-
 	cfg := &packages.Config{
 		Mode: packages.NeedFiles | packages.NeedSyntax | packages.NeedTypes | packages.NeedDeps,
 	}
@@ -62,6 +63,13 @@ misspelled words highlighted.
 	}
 	if packages.PrintErrors(pkgs) != 0 {
 		os.Exit(1)
+	}
+
+	if *ignoreIdents {
+		err = addIdentifiers(spelling, pkgs)
+		if err != nil {
+			log.Fatal(err)
+		}
 	}
 
 	warn := (ct.Italic | ct.Fg(ct.BoldRed)).Paint
@@ -109,6 +117,38 @@ misspelled words highlighted.
 			}
 		}
 	}
+}
+
+// addIdentifiers adds identifier labels to the spelling dictionary.
+func addIdentifiers(spelling *hunspell.Spell, pkgs []*packages.Package) error {
+	v := &visitor{spelling: spelling}
+	for _, p := range pkgs {
+		for _, e := range strings.Split(p.String(), "/") {
+			spelling.Add(e)
+		}
+		for _, f := range p.Syntax {
+			ast.Walk(v, f)
+		}
+	}
+	if v.failed != 0 {
+		return errors.New("missed adding %d identifiers")
+	}
+	return nil
+}
+
+type visitor struct {
+	spelling *hunspell.Spell
+	failed   int
+}
+
+func (v *visitor) Visit(n ast.Node) ast.Visitor {
+	if n, ok := n.(*ast.Ident); ok {
+		ok = v.spelling.Add(n.Name)
+		if !ok {
+			v.failed++
+		}
+	}
+	return v
 }
 
 // allUpper returns whether all runes in s are uppercase. For the purposed
@@ -184,6 +224,8 @@ func (w *words) ScanWords(data []byte, atEOF bool) (advance int, token []byte, e
 }
 
 var knownWords = []string{
+	"golang",
+
 	"break", "case", "chan", "const", "continue", "default",
 	"defer", "else", "fallthrough", "for", "func", "go", "goto",
 	"if", "import", "interface", "map", "package", "range",
@@ -192,7 +234,13 @@ var knownWords = []string{
 	"append", "cap", "cgo", "copy", "goroutine", "goroutines", "init",
 	"len", "make", "map", "new", "panic", "print", "println", "recover",
 
-	"args", "codec", "endian", "http", "https", "localhost", "rpc",
+	"allocator", "args", "async", "boolean", "booleans", "codec", "endian",
+	"gcc", "hostname", "http", "https", "localhost", "rpc", "symlink",
+	"symlinks",
 
-	"aix", "darwin", "freebsd", "linux", "netbsd", "openbsd", "windows",
+	"aix", "amd64", "arm64", "darwin", "freebsd", "illumos", "js", "linux",
+	"mips", "mips64", "mips64le", "mipsle", "netbsd", "openbsd", "ppc64",
+	"ppc64le", "riscv64", "s390x", "solaris", "wasm", "windows",
+
+	"linkname", "nosplit", "toolchain",
 }
