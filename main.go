@@ -45,13 +45,7 @@ misspelled words highlighted.
 		fmt.Fprintf(os.Stderr, "dictionaries: %v\n", err)
 		os.Exit(1)
 	}
-	keywords := []string{
-		"break", "case", "chan", "const", "continue", "default",
-		"defer", "else", "fallthrough", "for", "func", "go", "goto",
-		"if", "import", "interface", "map", "package", "range",
-		"return", "select", "struct", "switch", "type", "var",
-	}
-	for _, w := range keywords {
+	for _, w := range knownWords {
 		spelling.Add(w)
 	}
 
@@ -117,10 +111,11 @@ misspelled words highlighted.
 	}
 }
 
-// allUpper returns whether all runes in s are uppercase.
+// allUpper returns whether all runes in s are uppercase. For the purposed
+// of this test, numerals are considered uppercase.
 func allUpper(s string) bool {
 	for _, r := range s {
-		if !unicode.IsUpper(r) {
+		if !unicode.IsUpper(r) && !unicode.IsDigit(r) {
 			return false
 		}
 	}
@@ -173,7 +168,7 @@ func (w *words) ScanWords(data []byte, atEOF bool) (advance int, token []byte, e
 	for width, i := 0, start; i < len(data); i += width {
 		var r rune
 		r, width = utf8.DecodeRune(data[i:])
-		if unicode.IsSpace(r) || unicode.IsPunct(r) {
+		if unicode.IsSpace(r) || unicode.IsPunct(r) || unicode.IsSymbol(r) {
 			w.current.end += i + width
 			return i + width, data[start:i], nil
 		}
@@ -186,4 +181,18 @@ func (w *words) ScanWords(data []byte, atEOF bool) (advance int, token []byte, e
 	// Request more data.
 	w.current.end = w.current.pos
 	return start, nil, nil
+}
+
+var knownWords = []string{
+	"break", "case", "chan", "const", "continue", "default",
+	"defer", "else", "fallthrough", "for", "func", "go", "goto",
+	"if", "import", "interface", "map", "package", "range",
+	"return", "select", "struct", "switch", "type", "var",
+
+	"append", "cap", "cgo", "copy", "goroutine", "goroutines", "init",
+	"len", "make", "map", "new", "panic", "print", "println", "recover",
+
+	"args", "codec", "endian", "http", "https", "localhost", "rpc",
+
+	"aix", "darwin", "freebsd", "linux", "netbsd", "openbsd", "windows",
 }
