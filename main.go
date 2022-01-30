@@ -68,7 +68,7 @@ misspelled words highlighted.
 		}
 	}
 	if spelling == nil {
-		fmt.Fprintf(os.Stderr, "no dictionaries found in: %v\n", *dicts)
+		fmt.Fprintf(os.Stderr, "no %s dictionary found in: %v\n", *lang, *dicts)
 		os.Exit(1)
 	}
 	for _, w := range knownWords {
