@@ -25,7 +25,7 @@ import (
 )
 
 func main() {
-	show := flag.Bool("show", true, "print comment with repeats")
+	show := flag.Bool("show", true, "print comment with misspellings")
 	ignoreUpper := flag.Bool("ignore-upper", true, "ignore all-uppercase words")
 	ignoreIdents := flag.Bool("ignore-idents", true, "ignore words matching identifiers")
 	lang := flag.String("lang", "en_US", "language to use")
