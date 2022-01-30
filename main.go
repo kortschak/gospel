@@ -15,6 +15,7 @@ import (
 	"go/ast"
 	"log"
 	"os"
+	"path/filepath"
 	"strings"
 	"unicode"
 	"unicode/utf8"
@@ -29,7 +30,7 @@ func main() {
 	ignoreUpper := flag.Bool("ignore-upper", true, "ignore all-uppercase words")
 	ignoreIdents := flag.Bool("ignore-idents", true, "ignore words matching identifiers")
 	lang := flag.String("lang", "en_US", "language to use")
-	dicts := flag.String("dict-path", "/usr/share/hunspell", "directory containing hunspell dictionaries")
+	dicts := flag.String("dict-paths", path, "directory list containing hunspell dictionaries")
 	flag.Usage = func() {
 		fmt.Fprintf(flag.CommandLine.Output(), `usage: %s [options] [packages]
 
@@ -44,9 +45,30 @@ misspelled words highlighted.
 	}
 	flag.Parse()
 
-	spelling, err := hunspell.NewSpell(*dicts, *lang)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "dictionaries: %v\n", err)
+	if *lang == "" {
+		fmt.Fprintf(os.Stderr, "missing lang flag")
+		os.Exit(1)
+	}
+	var (
+		spelling *hunspell.Spell
+		err      error
+	)
+	for _, p := range filepath.SplitList(*dicts) {
+		if strings.HasPrefix(p, "~"+string(filepath.Separator)) {
+			dir, err := os.UserHomeDir()
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "could not expand tilde: %v\n", err)
+				os.Exit(1)
+			}
+			p = filepath.Join(dir, p[2:])
+		}
+		spelling, err = hunspell.NewSpell(p, *lang)
+		if err == nil {
+			break
+		}
+	}
+	if spelling == nil {
+		fmt.Fprintf(os.Stderr, "no dictionaries found in: %v\n", *dicts)
 		os.Exit(1)
 	}
 	for _, w := range knownWords {
