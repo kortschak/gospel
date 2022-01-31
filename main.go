@@ -338,4 +338,12 @@ var knownWords = []string{
 	"ppc64", "ppc64le", "riscv64", "s390x", "solaris", "wasm", "windows",
 
 	"linkname", "nosplit", "toolchain",
+
+	"nil",
+	"bool",
+	"int", "int8", "int16", "int32", "int64",
+	"uint", "uint8", "uint16", "uint32", "uint64", "uintptr",
+	"float32", "float64",
+	"complex64", "complex128",
+	"string", "byte", "rune",
 }
