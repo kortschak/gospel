@@ -1,6 +1,6 @@
 # `gospel`
 
-The `gospel` program lints Go source code for misspellings in comments. It uses hunspell to identify misspellings and only emits coloured output for visual inspection; don't use it in automated linting.
+The `gospel` program lints Go source code for misspellings in comments and strings. It uses hunspell to identify misspellings and only emits coloured output for visual inspection; don't use it in automated linting.
 
 ## Installation
 

@@ -3,8 +3,9 @@
 // license that can be found in the LICENSE file.
 
 // The gospel command finds and highlights misspelled words in Go source
-// comments. It uses hunspell to identify misspellings and only emits
-// coloured output for visual inspection; don't use it in automated linting.
+// comments and strings. It uses hunspell to identify misspellings and only
+// emits coloured output for visual inspection; don't use it in automated
+// linting.
 package main
 
 import (
@@ -13,6 +14,7 @@ import (
 	"flag"
 	"fmt"
 	"go/ast"
+	"go/token"
 	"log"
 	"os"
 	"path/filepath"
@@ -26,7 +28,8 @@ import (
 )
 
 func main() {
-	show := flag.Bool("show", true, "print comment with misspellings")
+	show := flag.Bool("show", true, "print comment or string with misspellings")
+	checkStrings := flag.Bool("check-strings", false, "check string literals")
 	ignoreUpper := flag.Bool("ignore-upper", true, "ignore all-uppercase words")
 	ignoreIdents := flag.Bool("ignore-idents", true, "ignore words matching identifiers")
 	lang := flag.String("lang", "en_US", "language to use")
@@ -34,11 +37,11 @@ func main() {
 	flag.Usage = func() {
 		fmt.Fprintf(flag.CommandLine.Output(), `usage: %s [options] [packages]
 
-The gospel program will report misspellings in Go source comments.
+The gospel program will report misspellings in Go source comments and strings.
 
-Each comment block with misspelled word will be output for each word and
-if the -show flag is true, the complete comment block will be printed with
-misspelled words highlighted.
+The position of each comment block or string with misspelled a word will be
+output. If the -show flag is true, the complete comment block or string will
+be printed with misspelled words highlighted.
 
 `, os.Args[0])
 		flag.PrintDefaults()
@@ -94,64 +97,99 @@ misspelled words highlighted.
 		}
 	}
 
-	warn := (ct.Italic | ct.Fg(ct.BoldRed)).Paint
-
+	c := &checker{
+		spelling:    spelling,
+		show:        *show,
+		ignoreUpper: *ignoreUpper,
+		warn:        (ct.Italic | ct.Fg(ct.BoldRed)).Paint,
+	}
 	for _, p := range pkgs {
+		c.fileset = p.Fset
 		for _, f := range p.Syntax {
-			for _, c := range f.Comments {
-				comment := c.Text()
-				sc := bufio.NewScanner(strings.NewReader(comment))
-				w := words{}
-				sc.Split(w.ScanWords)
-
-				var (
-					args    []interface{}
-					lastPos int
-				)
-				seen := make(map[string]bool)
-				for sc.Scan() {
-					text := sc.Text()
-					switch {
-					case strings.HasSuffix(text, "'s"):
-						text = strings.TrimSuffix(text, "'s")
-					case strings.HasSuffix(text, "'d"):
-						text = strings.TrimSuffix(text, "'d")
-					case strings.HasSuffix(text, "'th"):
-						text = strings.TrimSuffix(text, "'th")
-					}
-
-					if !(*ignoreUpper && allUpper(text)) && !spelling.IsCorrect(text) {
-						if !seen[text] {
-							fmt.Printf("%v: %q is misspelled\n", p.Fset.Position(c.Pos()), text)
-							seen[text] = true
-						}
-						if *show {
-							if w.current.pos != lastPos {
-								args = append(args, comment[lastPos:w.current.pos])
-							}
-							args = append(args, warn(comment[w.current.pos:w.current.pos+len(text)]), comment[w.current.pos+len(text):w.current.end])
-							lastPos = w.current.end
-						}
-					}
-				}
-				if args != nil {
-					if lastPos != len(comment) {
-						args = append(args, comment[lastPos:])
-					}
-					lines := strings.Split(join(args), "\n")
-					if lines[len(lines)-1] == "" {
-						lines = lines[:len(lines)-1]
-					}
-					fmt.Printf("\t%s\n", strings.Join(lines, "\n\t"))
-				}
+			if *checkStrings {
+				ast.Walk(c, f)
+			}
+			for _, g := range f.Comments {
+				c.check(g.Text(), g.Pos(), "comment")
 			}
 		}
 	}
 }
 
+// checker implement an AST-walking spell checker.
+type checker struct {
+	fileset *token.FileSet
+
+	spelling *hunspell.Spell
+
+	show        bool // show the context of a misspelling.
+	ignoreUpper bool // ignore words that are all uppercase.
+
+	// warn is the decoration for incorrectly spelled words.
+	warn func(...interface{}) fmt.Formatter
+}
+
+// check checks the provided text and outputs information about any misspellings
+// in the text.
+func (c *checker) check(text string, pos token.Pos, where string) {
+	sc := bufio.NewScanner(strings.NewReader(text))
+	w := words{}
+	sc.Split(w.ScanWords)
+
+	var (
+		args    []interface{}
+		lastPos int
+	)
+	seen := make(map[string]bool)
+	for sc.Scan() {
+		word := sc.Text()
+		switch {
+		case strings.HasSuffix(word, "'s"):
+			word = strings.TrimSuffix(word, "'s")
+		case strings.HasSuffix(word, "'d"):
+			word = strings.TrimSuffix(word, "'d")
+		case strings.HasSuffix(word, "'th"):
+			word = strings.TrimSuffix(word, "'th")
+		}
+
+		if (c.ignoreUpper && allUpper(word)) || c.spelling.IsCorrect(word) {
+			continue
+		}
+		if !seen[word] {
+			fmt.Printf("%v: %q is misspelled in %s\n", c.fileset.Position(pos), word, where)
+			seen[word] = true
+		}
+		if c.show {
+			if w.current.pos != lastPos {
+				args = append(args, text[lastPos:w.current.pos])
+			}
+			args = append(args, c.warn(text[w.current.pos:w.current.pos+len(word)]), text[w.current.pos+len(word):w.current.end])
+			lastPos = w.current.end
+		}
+	}
+	if args != nil {
+		if lastPos != len(text) {
+			args = append(args, text[lastPos:])
+		}
+		lines := strings.Split(join(args), "\n")
+		if lines[len(lines)-1] == "" {
+			lines = lines[:len(lines)-1]
+		}
+		fmt.Printf("\t%s\n", strings.Join(lines, "\n\t"))
+	}
+}
+
+// Visit walks the AST performing spell checking on any string literals.
+func (c *checker) Visit(n ast.Node) ast.Visitor {
+	if n, ok := n.(*ast.BasicLit); ok && n.Kind == token.STRING {
+		c.check(n.Value, n.Pos(), "string")
+	}
+	return c
+}
+
 // addIdentifiers adds identifier labels to the spelling dictionary.
 func addIdentifiers(spelling *hunspell.Spell, pkgs []*packages.Package) error {
-	v := &visitor{spelling: spelling}
+	v := &adder{spelling: spelling}
 	for _, p := range pkgs {
 		for _, e := range strings.Split(p.String(), "/") {
 			spelling.Add(e)
@@ -166,19 +204,21 @@ func addIdentifiers(spelling *hunspell.Spell, pkgs []*packages.Package) error {
 	return nil
 }
 
-type visitor struct {
+// adder is an ast.Visitor that adds tokens to a spelling dictionary.
+type adder struct {
 	spelling *hunspell.Spell
 	failed   int
 }
 
-func (v *visitor) Visit(n ast.Node) ast.Visitor {
+// Visit adds the names of all identifiers to the dictionary.
+func (a *adder) Visit(n ast.Node) ast.Visitor {
 	if n, ok := n.(*ast.Ident); ok {
-		ok = v.spelling.Add(n.Name)
+		ok = a.spelling.Add(n.Name)
 		if !ok {
-			v.failed++
+			a.failed++
 		}
 	}
-	return v
+	return a
 }
 
 // allUpper returns whether all runes in s are uppercase. For the purposed
@@ -229,7 +269,7 @@ func (w *words) ScanWords(data []byte, atEOF bool) (advance int, token []byte, e
 	for width, i := 0, 0; start < len(data); start += width {
 		var r rune
 		r, width = utf8.DecodeRune(data[start:])
-		if !unicode.IsSpace(r) && !unicode.IsSymbol(r) && !isWordSplitPunct(prev, r, data[i+width:]) {
+		if !isSplitter(prev, r, data[i+width:]) {
 			prev = r
 			break
 		}
@@ -241,7 +281,7 @@ func (w *words) ScanWords(data []byte, atEOF bool) (advance int, token []byte, e
 	for width, i := 0, start; i < len(data); i += width {
 		var r rune
 		r, width = utf8.DecodeRune(data[i:])
-		if unicode.IsSpace(r) || unicode.IsSymbol(r) || isWordSplitPunct(prev, r, data[i+width:]) {
+		if isSplitter(prev, r, data[i+width:]) {
 			w.current.end += i + width
 			return i + width, data[start:i], nil
 		}
@@ -255,6 +295,10 @@ func (w *words) ScanWords(data []byte, atEOF bool) (advance int, token []byte, e
 	// Request more data.
 	w.current.end = w.current.pos
 	return start, nil, nil
+}
+
+func isSplitter(prev, curr rune, next []byte) bool {
+	return unicode.IsSpace(curr) || unicode.IsSymbol(curr) || isWordSplitPunct(prev, curr, next)
 }
 
 // isWordSplitPunct returns whether the previous, current and next runes
