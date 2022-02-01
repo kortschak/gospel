@@ -234,8 +234,11 @@ func stripUnderscores(s string) string {
 }
 
 // allUpper returns whether all runes in s are uppercase. For the purposed
-// of this test, numerals and underscores are considered uppercase.
+// of this test, numerals and underscores are considered uppercase. As a
+// special case, a final 's' is also considered uppercase to allow plurals
+// of initialisms and acronyms.
 func allUpper(s string) bool {
+	s = strings.TrimSuffix(s, "s")
 	for _, r := range s {
 		if !unicode.IsUpper(r) && !unicode.IsDigit(r) && r != '_' {
 			return false
