@@ -157,7 +157,7 @@ func (c *checker) check(text string, pos token.Pos, where string) {
 			word = strings.TrimSuffix(word, "'th")
 		}
 
-		if (c.ignoreUpper && allUpper(word)) || c.spelling.IsCorrect(word) {
+		if (c.ignoreUpper && allUpper(word)) || c.spelling.IsCorrect(stripUnderscores(word)) {
 			continue
 		}
 		if !seen[word] {
@@ -218,12 +218,19 @@ type adder struct {
 // Visit adds the names of all identifiers to the dictionary.
 func (a *adder) Visit(n ast.Node) ast.Visitor {
 	if n, ok := n.(*ast.Ident); ok {
-		ok = a.spelling.Add(n.Name)
+		ok = a.spelling.Add(stripUnderscores(n.Name))
 		if !ok {
 			a.failed++
 		}
 	}
 	return a
+}
+
+// stripUnderscores removes leading and trailing underscores from
+// words to prevent emph marking used in comments from preventing
+// spell check matching.
+func stripUnderscores(s string) string {
+	return strings.TrimPrefix(strings.TrimSuffix(s, "_"), "_")
 }
 
 // allUpper returns whether all runes in s are uppercase. For the purposed
