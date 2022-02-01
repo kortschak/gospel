@@ -143,6 +143,11 @@ func (c *checker) check(text string, pos token.Pos, where string) {
 	seen := make(map[string]bool)
 	for sc.Scan() {
 		word := sc.Text()
+
+		// Remove common suffixes from words.
+		// Note that prefix removal cannot be
+		// done without adjusting the word's
+		// start position.
 		switch {
 		case strings.HasSuffix(word, "'s"):
 			word = strings.TrimSuffix(word, "'s")
