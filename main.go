@@ -153,6 +153,8 @@ func (c *checker) check(text string, pos token.Pos, where string) {
 			word = strings.TrimSuffix(word, "'s")
 		case strings.HasSuffix(word, "'d"):
 			word = strings.TrimSuffix(word, "'d")
+		case strings.HasSuffix(word, "'ed"):
+			word = strings.TrimSuffix(word, "'ed")
 		case strings.HasSuffix(word, "'th"):
 			word = strings.TrimSuffix(word, "'th")
 		}
