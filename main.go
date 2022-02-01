@@ -227,10 +227,10 @@ func (a *adder) Visit(n ast.Node) ast.Visitor {
 }
 
 // allUpper returns whether all runes in s are uppercase. For the purposed
-// of this test, numerals are considered uppercase.
+// of this test, numerals and underscores are considered uppercase.
 func allUpper(s string) bool {
 	for _, r := range s {
-		if !unicode.IsUpper(r) && !unicode.IsDigit(r) {
+		if !unicode.IsUpper(r) && !unicode.IsDigit(r) && r != '_' {
 			return false
 		}
 	}
