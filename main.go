@@ -15,9 +15,10 @@ import (
 	"fmt"
 	"go/ast"
 	"go/token"
-	"log"
+	"io/fs"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 	"unicode"
 	"unicode/utf8"
@@ -31,7 +32,10 @@ func main() {
 	show := flag.Bool("show", true, "print comment or string with misspellings")
 	checkStrings := flag.Bool("check-strings", false, "check string literals")
 	ignoreUpper := flag.Bool("ignore-upper", true, "ignore all-uppercase words")
+	ignoreSingle := flag.Bool("ignore-single", true, "ignore single letter words")
 	ignoreIdents := flag.Bool("ignore-idents", true, "ignore words matching identifiers")
+	words := flag.String("misspellings", "", "file to write a dictionary of misspellings (.dic format)")
+	update := flag.Bool("update-dict", true, "update misspellings dictionary instead of creating a new one")
 	lang := flag.String("lang", "en_US", "language to use")
 	dicts := flag.String("dict-paths", path, "directory list containing hunspell dictionaries")
 	flag.Usage = func() {
@@ -42,6 +46,14 @@ The gospel program will report misspellings in Go source comments and strings.
 The position of each comment block or string with misspelled a word will be
 output. If the -show flag is true, the complete comment block or string will
 be printed with misspelled words highlighted.
+
+If files with the name ".words" exist at module roots, they are loaded as
+dictionaries unless the misspellings flag is set. The ".words" file is read
+as a hunspell .dic format file and so requires a non-zero numeric value on
+the first line. This value is a hint to hunspell for the number of words in
+the dictionary and is populated correctly by the misspellings option. The
+file may be edited to remove incorrect words without requiring the hint to
+be adjusted.
 
 `, os.Args[0])
 		flag.PrintDefaults()
@@ -79,7 +91,7 @@ be printed with misspelled words highlighted.
 	}
 
 	cfg := &packages.Config{
-		Mode: packages.NeedFiles | packages.NeedSyntax | packages.NeedTypes | packages.NeedDeps,
+		Mode: packages.NeedFiles | packages.NeedSyntax | packages.NeedTypes | packages.NeedDeps | packages.NeedModule,
 	}
 	pkgs, err := packages.Load(cfg, flag.Args()...)
 	if err != nil {
@@ -97,11 +109,34 @@ be printed with misspelled words highlighted.
 		}
 	}
 
+	// Load any dictionaries that exist in well known locations
+	// at module roots. We do not do this when we are outputting
+	// a misspelling list since the list will be incomplete unless
+	// it is appended to the existing list, unless we are making
+	// and updated dictionary when we will merge them.
+	if *words == "" || *update {
+		roots := make(map[string]bool)
+		for _, p := range pkgs {
+			roots[p.Module.Dir] = true
+		}
+		for r := range roots {
+			err := spelling.AddDict(filepath.Join(r, ".words"))
+			if _, ok := err.(*os.PathError); !ok && err != nil {
+				log.Fatal(err)
+			}
+		}
+	}
+
 	c := &checker{
-		spelling:    spelling,
-		show:        *show,
-		ignoreUpper: *ignoreUpper,
-		warn:        (ct.Italic | ct.Fg(ct.BoldRed)).Paint,
+		spelling:     spelling,
+		show:         *show,
+		ignoreUpper:  *ignoreUpper,
+		ignoreSingle: *ignoreSingle,
+		warn:         (ct.Italic | ct.Fg(ct.BoldRed)).Paint,
+		misspelled:   make(map[string]bool),
+	}
+	if *words != "" {
+		c.misspelled = make(map[string]bool)
 	}
 	for _, p := range pkgs {
 		c.fileset = p.Fset
@@ -114,6 +149,46 @@ be printed with misspelled words highlighted.
 			}
 		}
 	}
+
+	// Write out a dictionary of the misspelled words.
+	// The hunspell .dic format includes a count hint
+	// at the top of the file so add that as well.
+	if *words != "" {
+		if *update {
+			// Carry over words from the already existing dictionary.
+			old, err := os.Open(".words")
+			if err == nil {
+				sc := bufio.NewScanner(old)
+				for i := 0; sc.Scan(); i++ {
+					if i == 0 {
+						continue
+					}
+					c.misspelled[sc.Text()] = true
+				}
+				old.Close()
+			} else if !errors.Is(err, fs.ErrNotExist) {
+				fmt.Fprintf(os.Stderr, "failed to open .words file: %v", err)
+				return 1
+
+			}
+		}
+
+		f, err := os.Create(*words)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "failed to open misspellings file: %v", err)
+			os.Exit(1)
+		}
+		defer f.Close()
+		dict := make([]string, 0, len(c.misspelled))
+		for m := range c.misspelled {
+			dict = append(dict, m)
+		}
+		sort.Strings(dict)
+		fmt.Fprintln(f, len(dict))
+		for _, m := range dict {
+			fmt.Fprintln(f, m)
+		}
+	}
 }
 
 // checker implement an AST-walking spell checker.
@@ -122,11 +197,17 @@ type checker struct {
 
 	spelling *hunspell.Spell
 
-	show        bool // show the context of a misspelling.
-	ignoreUpper bool // ignore words that are all uppercase.
+	show         bool // show the context of a misspelling.
+	ignoreUpper  bool // ignore words that are all uppercase.
+	ignoreSingle bool // ignore words that are a single rune.
 
 	// warn is the decoration for incorrectly spelled words.
 	warn func(...interface{}) fmt.Formatter
+
+	// misspelled is the complete list of misspelled words
+	// found during the check. The words must have had any
+	// leading and trailing underscores removed.
+	misspelled map[string]bool
 }
 
 // check checks the provided text and outputs information about any misspellings
@@ -159,8 +240,18 @@ func (c *checker) check(text string, pos token.Pos, where string) {
 			word = strings.TrimSuffix(word, "'th")
 		}
 
-		if (c.ignoreUpper && allUpper(word)) || c.spelling.IsCorrect(stripUnderscores(word)) {
+		strippedWord := stripUnderscores(word)
+		if c.ignoreUpper && allUpper(strippedWord) {
 			continue
+		}
+		if c.ignoreSingle && utf8.RuneCountInString(strippedWord) == 1 {
+			continue
+		}
+		if c.spelling.IsCorrect(strippedWord) {
+			continue
+		}
+		if c.misspelled != nil {
+			c.misspelled[strippedWord] = true
 		}
 		if !seen[word] {
 			fmt.Printf("%v: %q is misspelled in %s\n", c.fileset.Position(pos), word, where)
