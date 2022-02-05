@@ -1,0 +1,18 @@
+# Show all-uppercase words (including numerals and underscores) can be ignored.
+gospel -ignore-upper=false
+stdout 'main.go:3:1: "FL1M_FLAM" is misspelled in comment'
+stdout '	\x1b\[31;1;3mFL1M_FLAM\x1b\[0m'
+! stderr .
+
+gospel -ignore-upper=true
+! stdout .
+! stderr .
+
+-- go.mod --
+module dummy
+-- main.go --
+package main
+
+// FL1M_FLAM
+func main() {
+}

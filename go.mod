@@ -4,7 +4,13 @@ go 1.17
 
 require (
 	github.com/kortschak/ct v0.0.0-20140325011614-7d86dffe6951
+	github.com/rogpeppe/go-internal v1.8.1
 	golang.org/x/tools v0.1.5
+)
+
+require (
+	github.com/pkg/diff v0.0.0-20210226163009-20ebb0f2a09e // indirect
+	gopkg.in/errgo.v2 v2.1.0 // indirect
 )
 
 require (

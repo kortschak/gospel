@@ -1,0 +1,4 @@
+# Show successful help.
+gospel -h
+stderr 'usage: gospel \[options\] \[packages\]'
+! stdout .
