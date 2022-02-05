@@ -37,7 +37,7 @@ func gospel() int {
 	ignoreSingle := flag.Bool("ignore-single", true, "ignore single letter words")
 	ignoreIdents := flag.Bool("ignore-idents", true, "ignore words matching identifiers")
 	words := flag.String("misspellings", "", "file to write a dictionary of misspellings (.dic format)")
-	update := flag.Bool("update-dict", true, "update misspellings dictionary instead of creating a new one")
+	update := flag.Bool("update-dict", false, "update misspellings dictionary instead of creating a new one")
 	lang := flag.String("lang", "en_US", "language to use")
 	dicts := flag.String("dict-paths", path, "directory list containing hunspell dictionaries")
 	flag.Usage = func() {
