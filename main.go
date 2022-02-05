@@ -50,12 +50,12 @@ output. If the -show flag is true, the complete comment block or string will
 be printed with misspelled words highlighted.
 
 If files with the name ".words" exist at module roots, they are loaded as
-dictionaries unless the misspellings flag is set. The ".words" file is read
-as a hunspell .dic format file and so requires a non-zero numeric value on
-the first line. This value is a hint to hunspell for the number of words in
-the dictionary and is populated correctly by the misspellings option. The
-file may be edited to remove incorrect words without requiring the hint to
-be adjusted.
+dictionaries unless the misspellings flag is set without update-dict.
+The ".words" file is read as a hunspell .dic format file and so requires
+a non-zero numeric value on the first line. This value is a hint to hunspell
+for the number of words in the dictionary and is populated correctly by the
+misspellings option. The file may be edited to remove incorrect words without
+requiring the hint to be adjusted.
 
 `, os.Args[0])
 		flag.PrintDefaults()
