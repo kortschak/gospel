@@ -1,0 +1,9 @@
+# Show successful no-op with no words to check.
+gospel
+! stdout .
+! stderr .
+
+-- go.mod --
+module dummy
+-- dummy.go --
+package dummy

@@ -1,0 +1,18 @@
+# Show identifiers can mask misspelling and flanking underscores don't prevent match.
+gospel -ignore-idents=true
+! stdout .
+! stderr .
+
+gospel -ignore-idents=false
+stdout 'main.go:3:1: "_Speeling_" is misspelled in comment'
+stdout '	\x1b\[31;1;3m_Speeling_\x1b\[0m\ error.'
+
+-- go.mod --
+module dummy
+-- main.go --
+package main
+
+// _Speeling_ error.
+func main() {
+	type Speeling int
+}

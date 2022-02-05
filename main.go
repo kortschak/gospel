@@ -28,7 +28,9 @@ import (
 	"golang.org/x/tools/go/packages"
 )
 
-func main() {
+func main() { os.Exit(gospel()) }
+
+func gospel() int {
 	show := flag.Bool("show", true, "print comment or string with misspellings")
 	checkStrings := flag.Bool("check-strings", false, "check string literals")
 	ignoreUpper := flag.Bool("ignore-upper", true, "ignore all-uppercase words")
@@ -61,8 +63,8 @@ be adjusted.
 	flag.Parse()
 
 	if *lang == "" {
-		fmt.Fprintf(os.Stderr, "missing lang flag")
-		os.Exit(1)
+		fmt.Fprintln(os.Stderr, "missing lang flag")
+		return 2
 	}
 	var (
 		spelling *hunspell.Spell
@@ -73,7 +75,7 @@ be adjusted.
 			dir, err := os.UserHomeDir()
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "could not expand tilde: %v\n", err)
-				os.Exit(1)
+				return 1
 			}
 			p = filepath.Join(dir, p[2:])
 		}
@@ -84,7 +86,7 @@ be adjusted.
 	}
 	if spelling == nil {
 		fmt.Fprintf(os.Stderr, "no %s dictionary found in: %v\n", *lang, *dicts)
-		os.Exit(1)
+		return 1
 	}
 	for _, w := range knownWords {
 		spelling.Add(w)
@@ -96,16 +98,17 @@ be adjusted.
 	pkgs, err := packages.Load(cfg, flag.Args()...)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "load: %v\n", err)
-		os.Exit(1)
+		return 1
 	}
 	if packages.PrintErrors(pkgs) != 0 {
-		os.Exit(1)
+		return 1
 	}
 
 	if *ignoreIdents {
 		err = addIdentifiers(spelling, pkgs)
 		if err != nil {
-			log.Fatal(err)
+			fmt.Fprintln(os.Stderr, err)
+			return 1
 		}
 	}
 
@@ -122,7 +125,8 @@ be adjusted.
 		for r := range roots {
 			err := spelling.AddDict(filepath.Join(r, ".words"))
 			if _, ok := err.(*os.PathError); !ok && err != nil {
-				log.Fatal(err)
+				fmt.Fprintln(os.Stderr, err)
+				return 1
 			}
 		}
 	}
@@ -176,7 +180,7 @@ be adjusted.
 		f, err := os.Create(*words)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "failed to open misspellings file: %v", err)
-			os.Exit(1)
+			return 1
 		}
 		defer f.Close()
 		dict := make([]string, 0, len(c.misspelled))
@@ -189,6 +193,8 @@ be adjusted.
 			fmt.Fprintln(f, m)
 		}
 	}
+
+	return 0
 }
 
 // checker implement an AST-walking spell checker.

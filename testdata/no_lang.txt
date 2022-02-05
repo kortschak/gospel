@@ -1,0 +1,4 @@
+# Report the correct error when no language is requested.
+! gospel -lang=''
+! stdout .
+stderr 'missing lang flag'

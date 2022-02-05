@@ -1,0 +1,69 @@
+# Show vetting a complete program with multiple distinct errors.
+gospel -check-strings -show=false
+! stderr .
+
+stdout 'main.go:13:10: "misktaes" is misspelled in string'
+stdout 'main.go:13:10: "litreals" is misspelled in string'
+stdout 'main.go:14:10: "fo" is misspelled in string'
+stdout 'main.go:1:1: "programme" is misspelled in comment'
+stdout 'main.go:1:1: "seperate" is misspelled in comment'
+stdout 'main.go:10:1: "_nothign_" is misspelled in comment'
+
+# Don't ignore errors that match identifiers, but make a dictionary.
+gospel -check-strings -ignore-idents=false -show=false -misspellings=.words
+! stderr .
+
+stdout 'main.go:13:10: "misktaes" is misspelled in string'
+stdout 'main.go:13:10: "litreals" is misspelled in string'
+stdout 'main.go:14:10: "fo" is misspelled in string'
+stdout 'main.go:14:10: "_errirs_" is misspelled in string'
+stdout 'main.go:14:10: "thes" is misspelled in string'
+stdout 'main.go:14:10: "thet" is misspelled in string'
+stdout 'main.go:14:10: "fnagle" is misspelled in string'
+stdout 'main.go:1:1: "programme" is misspelled in comment'
+stdout 'main.go:1:1: "seperate" is misspelled in comment'
+stdout 'main.go:10:1: "_nothign_" is misspelled in comment'
+
+# Check it matches our expectation.
+cmp .words expected_words
+
+# Use the dictionary of bad words to allow all the words to pass.
+gospel -check-strings -ignore-idents=false -show=false
+! stdout .
+! stderr .
+
+-- go.mod --
+module dummy
+-- main.go --
+/*
+This is an example programme used to test a variety of seperate errors.
+*/
+package main
+
+type errirs []error
+
+var thes int
+
+// The program does _nothign_ useful.
+func main() {
+	var thet int
+	println("There are misktaes in comments and in string litreals.")
+	println(`But some fo the _errirs_ are masked by types, variables and functions
+thes and thet is masked by a var and fnagle is masked by a function.
+`)
+	println(thet)
+}
+
+func fnagle() {}
+-- expected_words --
+10
+errirs
+fnagle
+fo
+litreals
+misktaes
+nothign
+programme
+seperate
+thes
+thet
