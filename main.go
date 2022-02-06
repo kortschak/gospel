@@ -89,6 +89,9 @@ requiring the hint to be adjusted.
 		return 1
 	}
 	for _, w := range knownWords {
+		if spelling.IsCorrect(w) {
+			continue
+		}
 		spelling.Add(w)
 	}
 
@@ -102,14 +105,6 @@ requiring the hint to be adjusted.
 	}
 	if packages.PrintErrors(pkgs) != 0 {
 		return 1
-	}
-
-	if *ignoreIdents {
-		err = addIdentifiers(spelling, pkgs)
-		if err != nil {
-			fmt.Fprintln(os.Stderr, err)
-			return 1
-		}
 	}
 
 	// Load any dictionaries that exist in well known locations
@@ -128,6 +123,14 @@ requiring the hint to be adjusted.
 				fmt.Fprintln(os.Stderr, err)
 				return 1
 			}
+		}
+	}
+
+	if *ignoreIdents {
+		err = addIdentifiers(spelling, pkgs)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			return 1
 		}
 	}
 
@@ -296,7 +299,9 @@ func addIdentifiers(spelling *hunspell.Spell, pkgs []*packages.Package) error {
 	v := &adder{spelling: spelling}
 	for _, p := range pkgs {
 		for _, e := range strings.Split(p.String(), "/") {
-			spelling.Add(e)
+			if !spelling.IsCorrect(e) {
+				spelling.Add(e)
+			}
 		}
 		for _, f := range p.Syntax {
 			ast.Walk(v, f)
@@ -317,7 +322,11 @@ type adder struct {
 // Visit adds the names of all identifiers to the dictionary.
 func (a *adder) Visit(n ast.Node) ast.Visitor {
 	if n, ok := n.(*ast.Ident); ok {
-		ok = a.spelling.Add(stripUnderscores(n.Name))
+		w := stripUnderscores(n.Name)
+		if a.spelling.IsCorrect(w) {
+			return a
+		}
+		ok = a.spelling.Add(w)
 		if !ok {
 			a.failed++
 		}
