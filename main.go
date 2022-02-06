@@ -30,7 +30,16 @@ import (
 
 func main() { os.Exit(gospel()) }
 
-func gospel() int {
+// Exit status codes.
+const (
+	success       = 0
+	internalError = 1 << iota
+	invocationError
+	directiveError // Currently unused. This will be for linting directives.
+	spellingError
+)
+
+func gospel() (status int) {
 	show := flag.Bool("show", true, "print comment or string with misspellings")
 	checkStrings := flag.Bool("check-strings", false, "check string literals")
 	ignoreUpper := flag.Bool("ignore-upper", true, "ignore all-uppercase words")
@@ -64,7 +73,7 @@ requiring the hint to be adjusted.
 
 	if *lang == "" {
 		fmt.Fprintln(os.Stderr, "missing lang flag")
-		return 2
+		return invocationError
 	}
 	var (
 		spelling *hunspell.Spell
@@ -86,7 +95,7 @@ requiring the hint to be adjusted.
 	}
 	if spelling == nil {
 		fmt.Fprintf(os.Stderr, "no %s dictionary found in: %v\n", *lang, *dicts)
-		return 1
+		return internalError
 	}
 	for _, w := range knownWords {
 		if spelling.IsCorrect(w) {
@@ -101,10 +110,10 @@ requiring the hint to be adjusted.
 	pkgs, err := packages.Load(cfg, flag.Args()...)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "load: %v\n", err)
-		return 1
+		return internalError
 	}
 	if packages.PrintErrors(pkgs) != 0 {
-		return 1
+		return internalError
 	}
 
 	// Load any dictionaries that exist in well known locations
@@ -124,7 +133,7 @@ requiring the hint to be adjusted.
 			err := spelling.AddDict(filepath.Join(r, ".words"))
 			if _, ok := err.(*os.PathError); !ok && err != nil {
 				fmt.Fprintln(os.Stderr, err)
-				return 1
+				return internalError
 			}
 		}
 	}
@@ -133,7 +142,7 @@ requiring the hint to be adjusted.
 		err = addIdentifiers(spelling, pkgs)
 		if err != nil {
 			fmt.Fprintln(os.Stderr, err)
-			return 1
+			return internalError
 		}
 	}
 
@@ -159,6 +168,9 @@ requiring the hint to be adjusted.
 			}
 		}
 	}
+	if c.misspellings != 0 {
+		status |= spellingError
+	}
 
 	// Write out a dictionary of the misspelled words.
 	// The hunspell .dic format includes a count hint
@@ -178,15 +190,14 @@ requiring the hint to be adjusted.
 				old.Close()
 			} else if !errors.Is(err, fs.ErrNotExist) {
 				fmt.Fprintf(os.Stderr, "failed to open .words file: %v", err)
-				return 1
-
+				return internalError
 			}
 		}
 
 		f, err := os.Create(*words)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "failed to open misspellings file: %v", err)
-			return 1
+			return internalError
 		}
 		defer f.Close()
 		dict := make([]string, 0, len(c.misspelled))
@@ -200,7 +211,7 @@ requiring the hint to be adjusted.
 		}
 	}
 
-	return 0
+	return status
 }
 
 // checker implement an AST-walking spell checker.
@@ -215,6 +226,9 @@ type checker struct {
 
 	// warn is the decoration for incorrectly spelled words.
 	warn func(...interface{}) fmt.Formatter
+
+	// misspellings is the number of misspellings found.
+	misspellings int
 
 	// misspelled is the complete list of misspelled words
 	// found during the check. The words must have had any
@@ -262,6 +276,7 @@ func (c *checker) check(text string, pos token.Pos, where string) {
 		if c.spelling.IsCorrect(strippedWord) {
 			continue
 		}
+		c.misspellings++
 		if c.misspelled != nil {
 			c.misspelled[strippedWord] = true
 		}
