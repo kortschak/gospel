@@ -266,19 +266,8 @@ func (c *checker) check(text string, pos token.Pos, where string) {
 			word = strings.TrimSuffix(word, "'th")
 		}
 
-		strippedWord := stripUnderscores(word)
-		if c.ignoreUpper && allUpper(strippedWord) {
+		if c.isCorrect(stripUnderscores(word)) {
 			continue
-		}
-		if c.ignoreSingle && utf8.RuneCountInString(strippedWord) == 1 {
-			continue
-		}
-		if c.spelling.IsCorrect(strippedWord) {
-			continue
-		}
-		c.misspellings++
-		if c.misspelled != nil {
-			c.misspelled[strippedWord] = true
 		}
 		if !seen[word] {
 			fmt.Printf("%v: %q is misspelled in %s\n", c.fileset.Position(pos), word, where)
@@ -302,6 +291,32 @@ func (c *checker) check(text string, pos token.Pos, where string) {
 		}
 		fmt.Printf("\t%s\n", strings.Join(lines, "\n\t"))
 	}
+}
+
+// isCorrect performs the word correctness checks for checker.
+func (c *checker) isCorrect(word string) bool {
+	if c.ignoreUpper && allUpper(word) {
+		return true
+	}
+	if c.ignoreSingle && utf8.RuneCountInString(word) == 1 {
+		return true
+	}
+	if c.spelling.IsCorrect(word) {
+		return true
+	}
+	if !strings.Contains(word, "_") {
+		c.misspellings++
+		if c.misspelled != nil {
+			c.misspelled[word] = true
+		}
+		return false
+	}
+	for _, frag := range strings.Split(word, "_") {
+		if !c.isCorrect(frag) {
+			return false
+		}
+	}
+	return true
 }
 
 // Visit walks the AST performing spell checking on any string literals.
@@ -356,7 +371,7 @@ func (a *adder) Visit(n ast.Node) ast.Visitor {
 // words to prevent emph marking used in comments from preventing
 // spell check matching.
 func stripUnderscores(s string) string {
-	return strings.TrimPrefix(strings.TrimSuffix(s, "_"), "_")
+	return strings.TrimLeft(strings.TrimRight(s, "_"), "_")
 }
 
 // allUpper returns whether all runes in s are uppercase. For the purposed
