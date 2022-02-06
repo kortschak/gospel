@@ -115,6 +115,9 @@ requiring the hint to be adjusted.
 	if *words == "" || *update {
 		roots := make(map[string]bool)
 		for _, p := range pkgs {
+			if p.Module == nil {
+				continue
+			}
 			roots[p.Module.Dir] = true
 		}
 		for r := range roots {
