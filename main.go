@@ -26,6 +26,7 @@ import (
 	"github.com/kortschak/ct"
 	"github.com/kortschak/hunspell"
 	"golang.org/x/tools/go/packages"
+	"honnef.co/go/tools/analysis/lint"
 )
 
 func main() { os.Exit(gospel()) }
@@ -35,7 +36,7 @@ const (
 	success       = 0
 	internalError = 1 << iota
 	invocationError
-	directiveError // Currently unused. This will be for linting directives.
+	directiveError
 	spellingError
 )
 
@@ -159,7 +160,21 @@ requiring the hint to be adjusted.
 	}
 	for _, p := range pkgs {
 		c.fileset = p.Fset
+		ignore := make(map[string]bool)
+		for _, d := range lint.ParseDirectives(p.Syntax, p.Fset) {
+			ok, err := isSpellingDirective("file-ignore", d)
+			if err != nil {
+				status |= directiveError
+				fmt.Fprintf(os.Stderr, "%s: %v\n", p.Fset.Position(d.Node.Pos()), err)
+			}
+			if ok {
+				ignore[p.Fset.Position(d.Node.Pos()).Filename] = true
+			}
+		}
 		for _, f := range p.Syntax {
+			if ignore[p.Fset.Position(f.Pos()).Filename] {
+				continue
+			}
 			if *checkStrings {
 				ast.Walk(c, f)
 			}
@@ -212,6 +227,22 @@ requiring the hint to be adjusted.
 	}
 
 	return status
+}
+
+// isSpellingDirective returns whether d is a linter directive for spelling
+// with the specified command. It returns an error is the directive is
+// malformed according to https://staticcheck.io/docs/configuration/#ignoring-problems.
+func isSpellingDirective(command string, d lint.Directive) (bool, error) {
+	if d.Command != command || len(d.Arguments) == 0 {
+		return false, nil
+	}
+	if d.Arguments[0] != "spelling" {
+		return false, nil
+	}
+	if len(d.Arguments) < 2 {
+		return false, errors.New("malformed linter directive; missing the required reason field?")
+	}
+	return true, nil
 }
 
 // checker implement an AST-walking spell checker.
