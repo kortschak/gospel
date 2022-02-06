@@ -1,5 +1,5 @@
 # Update aa existing local dictionary of misspelled words.
-gospel -show=false -misspellings=.words -update-dict=true
+! gospel -show=false -misspellings=.words -update-dict=true
 stdout 'main.go:3:1: "errah" is misspelled in comment'
 ! stdout 'Speeling'
 ! stderr .

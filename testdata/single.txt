@@ -1,5 +1,5 @@
 # Show single-letter misspelling is ignored when requested.
-gospel -ignore-single=false
+! gospel -ignore-single=false
 stdout 'main.go:3:1: "ϵ" is misspelled in comment'
 stdout '	\x1b\[31;1;3mϵ\x1b\[0m'
 ! stderr .
