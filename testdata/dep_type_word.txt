@@ -1,0 +1,35 @@
+# Show dependency identifiers can mask misspelling.
+gospel -ignore-idents=true
+! stdout .
+! stderr .
+
+! gospel -ignore-idents=false
+stdout 'main.go:5:1: "Foooooo" is misspelled in comment'
+stdout 'main.go:5:1: "Baaaaaa" is misspelled in comment'
+! stderr .
+
+-- go.mod --
+module dummy
+-- main.go --
+package main
+
+import "dummy/p"
+
+// p.Foooooo and Baaaaaa
+func main() {
+	p.Bar()
+}
+-- p/dep.go --
+package p
+
+import "dummy/q"
+
+func Foooooo() {
+	q.Baaaaaa()
+}
+
+func Bar() {}
+-- q/dep.go --
+package q
+
+func Baaaaaa() {}
