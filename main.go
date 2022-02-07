@@ -105,7 +105,12 @@ requiring the hint to be adjusted.
 	}
 
 	cfg := &packages.Config{
-		Mode: packages.NeedFiles | packages.NeedSyntax | packages.NeedTypes | packages.NeedDeps | packages.NeedModule,
+		Mode: packages.NeedFiles |
+			packages.NeedImports |
+			packages.NeedDeps |
+			packages.NeedSyntax |
+			packages.NeedTypes |
+			packages.NeedModule,
 	}
 	pkgs, err := packages.Load(cfg, flag.Args()...)
 	if err != nil {
@@ -139,7 +144,7 @@ requiring the hint to be adjusted.
 	}
 
 	if *ignoreIdents {
-		err = addIdentifiers(spelling, pkgs)
+		err = addIdentifiers(spelling, pkgs, make(map[string]bool))
 		if err != nil {
 			fmt.Fprintln(os.Stderr, err)
 			return internalError
@@ -328,7 +333,7 @@ func (c *checker) Visit(n ast.Node) ast.Visitor {
 }
 
 // addIdentifiers adds identifier labels to the spelling dictionary.
-func addIdentifiers(spelling *hunspell.Spell, pkgs []*packages.Package) error {
+func addIdentifiers(spelling *hunspell.Spell, pkgs []*packages.Package, seen map[string]bool) error {
 	v := &adder{spelling: spelling}
 	for _, p := range pkgs {
 		for _, e := range strings.Split(p.String(), "/") {
@@ -338,6 +343,13 @@ func addIdentifiers(spelling *hunspell.Spell, pkgs []*packages.Package) error {
 		}
 		for _, f := range p.Syntax {
 			ast.Walk(v, f)
+		}
+		for _, dep := range p.Imports {
+			if seen[dep.String()] {
+				continue
+			}
+			seen[dep.String()] = true
+			addIdentifiers(spelling, []*packages.Package{dep}, seen)
 		}
 	}
 	if v.failed != 0 {
