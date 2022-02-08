@@ -1,0 +1,17 @@
+# Show underscore-separated words are allowed when all parts are accepted as correct.
+! gospel -camel=false
+stdout 'main.go:3:1: "ExampleWholeProgram" is misspelled in comment'
+! stderr .
+
+gospel
+! stdout .
+! stderr .
+
+-- go.mod --
+module dummy
+-- main.go --
+package main
+
+// ExampleWholeProgram
+func main() {
+}

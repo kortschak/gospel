@@ -23,6 +23,7 @@ import (
 	"unicode"
 	"unicode/utf8"
 
+	"github.com/kortschak/camel"
 	"github.com/kortschak/ct"
 	"github.com/kortschak/hunspell"
 	"golang.org/x/tools/go/packages"
@@ -45,6 +46,7 @@ func gospel() (status int) {
 	ignoreUpper := flag.Bool("ignore-upper", true, "ignore all-uppercase words")
 	ignoreSingle := flag.Bool("ignore-single", true, "ignore single letter words")
 	ignoreIdents := flag.Bool("ignore-idents", true, "ignore words matching identifiers")
+	camelSplit := flag.Bool("camel", true, "split words on camel case")
 	words := flag.String("misspellings", "", "file to write a dictionary of misspellings (.dic format)")
 	update := flag.Bool("update-dict", false, "update misspellings dictionary instead of creating a new one")
 	lang := flag.String("lang", "en_US", "language to use")
@@ -156,6 +158,7 @@ requiring the hint to be adjusted.
 		show:         *show,
 		ignoreUpper:  *ignoreUpper,
 		ignoreSingle: *ignoreSingle,
+		camelSplit:   *camelSplit,
 		warn:         (ct.Italic | ct.Fg(ct.BoldRed)).Paint,
 		misspelled:   make(map[string]bool),
 	}
@@ -228,6 +231,7 @@ type checker struct {
 	show         bool // show the context of a misspelling.
 	ignoreUpper  bool // ignore words that are all uppercase.
 	ignoreSingle bool // ignore words that are a single rune.
+	camelSplit   bool // split words on camelCase when retrying.
 
 	// warn is the decoration for incorrectly spelled words.
 	warn func(...interface{}) fmt.Formatter
@@ -271,7 +275,7 @@ func (c *checker) check(text string, pos token.Pos, where string) {
 			word = strings.TrimSuffix(word, "'th")
 		}
 
-		if c.isCorrect(stripUnderscores(word)) {
+		if c.isCorrect(stripUnderscores(word), false) {
 			continue
 		}
 		if !seen[word] {
@@ -299,7 +303,7 @@ func (c *checker) check(text string, pos token.Pos, where string) {
 }
 
 // isCorrect performs the word correctness checks for checker.
-func (c *checker) isCorrect(word string) bool {
+func (c *checker) isCorrect(word string, isRetry bool) bool {
 	if c.ignoreUpper && allUpper(word) {
 		return true
 	}
@@ -309,15 +313,23 @@ func (c *checker) isCorrect(word string) bool {
 	if c.spelling.IsCorrect(word) {
 		return true
 	}
-	if !strings.Contains(word, "_") {
+	if isRetry {
 		c.misspellings++
 		if c.misspelled != nil {
 			c.misspelled[word] = true
 		}
 		return false
 	}
-	for _, frag := range strings.Split(word, "_") {
-		if !c.isCorrect(frag) {
+	var fragments []string
+	if c.camelSplit {
+		// TODO(kortschak): Allow user-configurable
+		// known words for camel case splitting.
+		fragments = camel.Split(word)
+	} else {
+		fragments = strings.Split(word, "_")
+	}
+	for _, frag := range fragments {
+		if !c.isCorrect(frag, true) {
 			return false
 		}
 	}
