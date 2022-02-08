@@ -383,7 +383,7 @@ func (a *adder) Visit(n ast.Node) ast.Visitor {
 // words to prevent emph marking used in comments from preventing
 // spell check matching.
 func stripUnderscores(s string) string {
-	return strings.TrimLeft(strings.TrimRight(s, "_"), "_")
+	return strings.TrimFunc(s, func(r rune) bool { return r == '_' })
 }
 
 // allUpper returns whether all runes in s are uppercase. For the purposed
