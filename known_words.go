@@ -5,33 +5,44 @@
 package main
 
 // knownWords contains a list of commonly encountered words that
-// may not be in user dictionaries.
+// may not be in user dictionaries. It is used to construct a
+// temporary dictionary to load into hunspell.
 var knownWords = []string{
 	"golang",
 
 	// Keywords
-	"break", "case", "chan", "const", "continue", "default",
-	"defer", "else", "fallthrough", "for", "func", "go", "goto",
-	"if", "import", "interface", "map", "package", "range",
-	"return", "select", "struct", "switch", "type", "var",
+	"break/BMZGRS", "case/LDSJMG", "chan/MS", "const/MS", "continue/EGDS",
+	"default/DMS", "defer/DS", "else/MS", "fallthrough/MS", "for/H", "func/MS",
+	"go/JMRHZGS", "goto/MS", "if/SM", "import/UZGBSMDR", "interface/MGDS",
+	"map/ADGJS", "package/AGDS", "range/CGDS", "return/DMS", "select/CSGVD",
+	"struct/MS", "switch/MDRSZGB", "type/UAGDS", "var/MS",
 
 	// Built-in
-	"append", "cap", "cgo", "copy", "goroutine", "goroutines", "init",
-	"inits", "len", "make", "map", "new", "nil", "panic", "print",
-	"println", "recover",
+	"append/GDS", "cap/SMDRBZ", "cgo", "copy/ADSG", "goroutine", "goroutines",
+	"init/MS", "len", "make/UAGS", "new/STMRYP", "nil/M", "panic/SM",
+	"print/AMDSG", "println", "recover/USD",
 
 	// Built-in types
-	"bool",
-	"int", "int8", "int16", "int32", "int64",
-	"uint", "uint8", "uint16", "uint32", "uint64", "uintptr",
-	"float32", "float64",
-	"complex64", "complex128",
-	"string", "byte", "rune",
+	"bool/MS",
+	"int/MS", "int8/MS", "int16/MS", "int32/MS", "int64/MS",
+	"uint/MS", "uint8/MS", "uint16/MS", "uint32/MS", "uint64/MS", "uintptr/MS",
+	"float32/MS", "float64/MS",
+	"complex64/MS", "complex128/MS",
+	"string/MDRSZG", "byte/MS", "rune/MS",
 
 	// Commonly used words
-	"allocator", "args", "async", "boolean", "booleans", "codec", "endian",
-	"gcc", "hostname", "http", "https", "localhost", "NaN", "NaNs", "rpc",
-	"symlink", "symlinks", "toolchain", "toolchains",
+	"allocator/MS", "arg/MS", "async", "asm", "boolean/MS", "unbuffer/D",
+	"codec/MS", "endian", "endianness", "export/UBSZGMDR", "gcc/M", "glob/SDG",
+	"globbing", "hostname/MS", "http/S", "libc/M", "localhost", "mutex/MS",
+	"NaN/S", "rpc/MS", "stderr/M", "stdin/M", "stdout/M", "symlink/MS",
+	"toolchain/MS", "ascii", "backquote/MS", "charset/MS", "codepoint/MS",
+	"comment/UMSGD", "config/MS", "env/MS", "error/DSM", "escaped/UDLMGS",
+	"export/UBSZGMDR", "filesystem/MS", "hacky", "hash/RAMDSG", "html/M",
+	"intrinsics", "lex/GD", "lossy", "portably", "setting/U", "substring/MS",
+	"syscall/MS", "tokenize", "vendor/MSD",
+
+	// Units
+	"KiB/S", "MiB/S", "GiB/S", "TiB/S",
 
 	// Architectures
 	"aix", "amd64", "arm64", "darwin", "freebsd", "illumos", "ios", "js",
@@ -70,5 +81,5 @@ var knownWords = []string{
 	"yeswritebarrierrec",
 
 	// Common hosters
-	"bitbucket", "github", "gitlab", "sourcehut", "sr", "ht",
+	"bitbucket/M", "github/M", "gitlab/M", "sourcehut/M", "sr", "ht",
 }

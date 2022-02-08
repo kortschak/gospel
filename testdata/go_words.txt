@@ -1,0 +1,18 @@
+# Show acceptance of domain words from knownWords.
+
+gospel
+! stdout .
+! stderr .
+
+-- go.mod --
+module dummy
+-- main.go --
+package main
+
+/*
+This doesn't even copy from stdin to stdout, so we don't need
+two mutexes, or even one mutex. But if we could glob, we'd have
+some globbing to go with the globs.
+*/
+func main() {
+}

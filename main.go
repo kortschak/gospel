@@ -100,12 +100,6 @@ requiring the hint to be adjusted.
 		fmt.Fprintf(os.Stderr, "no %s dictionary found in: %v\n", *lang, *dicts)
 		return internalError
 	}
-	for _, w := range knownWords {
-		if spelling.IsCorrect(w) {
-			continue
-		}
-		spelling.Add(w)
-	}
 
 	cfg := &packages.Config{
 		Mode: packages.NeedFiles |
@@ -124,6 +118,25 @@ requiring the hint to be adjusted.
 		return internalError
 	}
 
+	// Load known words as a dictionary. This requires a write to
+	// disk since hunspell does not allow dictionaries to be loaded
+	// from memory, and affix rules can't be provided directly.
+	kw, err := os.CreateTemp("", "gospel")
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "failed to create known words dictionary: %v", err)
+		return internalError
+	} else {
+		defer os.Remove(kw.Name())
+		fmt.Fprintln(kw, len(knownWords))
+		for _, w := range knownWords {
+			fmt.Fprintln(kw, w)
+		}
+		err := spelling.AddDict(kw.Name())
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			return internalError
+		}
+	}
 	// Load any dictionaries that exist in well known locations
 	// at module roots. We do not do this when we are outputting
 	// a misspelling list since the list will be incomplete unless
