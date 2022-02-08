@@ -41,6 +41,13 @@ const (
 	spellingError
 )
 
+// Suggestion behaviour.
+const (
+	never  = 0
+	once   = 1
+	always = 2
+)
+
 func gospel() (status int) {
 	show := flag.Bool("show", true, "print comment or string with misspellings")
 	checkStrings := flag.Bool("check-strings", false, "check string literals")
@@ -49,6 +56,7 @@ func gospel() (status int) {
 	ignoreIdents := flag.Bool("ignore-idents", true, "ignore words matching identifiers")
 	camelSplit := flag.Bool("camel", true, "split words on camel case")
 	maxWordLen := flag.Int("max-word-len", 40, "ignore words longer than this (0 is no limit)")
+	suggest := flag.Int("suggest", 0, "make suggestions for misspellings (0 - never, 1 - first instance, 2 - always)")
 	words := flag.String("misspellings", "", "file to write a dictionary of misspellings (.dic format)")
 	update := flag.Bool("update-dict", false, "update misspellings dictionary instead of creating a new one")
 	lang := flag.String("lang", "en_US", "language to use")
@@ -77,6 +85,10 @@ requiring the hint to be adjusted.
 
 	if *lang == "" {
 		fmt.Fprintln(os.Stderr, "missing lang flag")
+		return invocationError
+	}
+	if *suggest < never || always < *suggest {
+		fmt.Fprintln(os.Stderr, "invalid suggest flag value")
 		return invocationError
 	}
 	var (
@@ -176,17 +188,25 @@ requiring the hint to be adjusted.
 	}
 
 	c := &checker{
-		spelling:     spelling,
-		show:         *show,
-		ignoreUpper:  *ignoreUpper,
-		ignoreSingle: *ignoreSingle,
-		camelSplit:   *camelSplit,
-		maxWordLen:   *maxWordLen,
-		warn:         (ct.Italic | ct.Fg(ct.BoldRed)).Paint,
-		misspelled:   make(map[string]bool),
+		spelling:        spelling,
+		show:            *show,
+		ignoreUpper:     *ignoreUpper,
+		ignoreSingle:    *ignoreSingle,
+		camelSplit:      *camelSplit,
+		maxWordLen:      *maxWordLen,
+		makeSuggestions: *suggest,
+		warn:            (ct.Italic | ct.Fg(ct.BoldRed)).Paint,
+	}
+	if c.show {
+		c.suggest = (ct.Italic | ct.Fg(ct.BoldGreen)).Paint
+	} else {
+		c.suggest = ct.Mode(0).Paint
 	}
 	if *words != "" {
 		c.misspelled = make(map[string]bool)
+	}
+	if *suggest != never {
+		c.suggested = make(map[string][]string)
 	}
 	for _, p := range pkgs {
 		c.fileset = p.Fset
@@ -257,8 +277,13 @@ type checker struct {
 	camelSplit   bool // split words on camelCase when retrying.
 	maxWordLen   int  // ignore words longer than this.
 
+	makeSuggestions int // make suggestions for misspelled words.
+	suggested       map[string][]string
+
 	// warn is the decoration for incorrectly spelled words.
 	warn func(...interface{}) fmt.Formatter
+	// suggest is the decoration for suggested words.
+	suggest func(...interface{}) fmt.Formatter
 
 	// misspellings is the number of misspellings found.
 	misspellings int
@@ -303,7 +328,32 @@ func (c *checker) check(text string, pos token.Pos, where string) {
 			continue
 		}
 		if !seen[word] {
-			fmt.Printf("%v: %q is misspelled in %s\n", c.fileset.Position(pos), word, where)
+			fmt.Printf("%v: %q is misspelled in %s", c.fileset.Position(pos), word, where)
+
+			if c.makeSuggestions == always || (c.makeSuggestions == once && c.suggested[word] == nil) {
+				suggestions, ok := c.suggested[word]
+				if !ok {
+					suggestions = c.spelling.Suggest(word)
+					if c.makeSuggestions == always {
+						// Cache suggestions.
+						c.suggested[word] = suggestions
+					} else {
+						// Mark as suggested.
+						c.suggested[word] = empty
+					}
+				}
+				if len(suggestions) != 0 {
+					fmt.Print(" (suggest: ")
+					for i, s := range suggestions {
+						if i != 0 {
+							fmt.Print(", ")
+						}
+						fmt.Printf("%s", c.suggest(s))
+					}
+					fmt.Print(")")
+				}
+			}
+			fmt.Println()
 			seen[word] = true
 		}
 		if c.show {
@@ -325,6 +375,10 @@ func (c *checker) check(text string, pos token.Pos, where string) {
 		fmt.Printf("\t%s\n", strings.Join(lines, "\n\t"))
 	}
 }
+
+// empty is a word suggestion sentinel indicating that previous suggestion
+// has been made.
+var empty = []string{}
 
 // isCorrect performs the word correctness checks for checker.
 func (c *checker) isCorrect(word string, isRetry bool) bool {

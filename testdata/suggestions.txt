@@ -1,0 +1,53 @@
+# Show suggestions.
+
+# Uncoloured when -show=false
+
+# never show suggestions
+! gospel -show=false -suggest=0
+stdout 'main.go:6:1: "coloured" is misspelled in comment$'
+stdout 'main.go:10:1: "coloured" is misspelled in comment$'
+! stderr .
+
+# show suggestion for first occurrence 
+! gospel -show=false -suggest=1
+stdout 'main.go:6:1: "coloured" is misspelled in comment \(suggest: colored, co loured, co-loured\)'
+stdout 'main.go:10:1: "coloured" is misspelled in comment$'
+! stderr .
+
+# always show suggestions
+! gospel -show=false -suggest=2
+stdout 'main.go:6:1: "coloured" is misspelled in comment \(suggest: colored, co loured, co-loured\)$'
+stdout 'main.go:10:1: "coloured" is misspelled in comment \(suggest: colored, co loured, co-loured\)$'
+! stderr .
+
+
+# Coloured when -show=true
+
+# show suggestion for first occurrence 
+! gospel -suggest=1
+stdout 'main.go:6:1: "coloured" is misspelled in comment \(suggest: \x1b\[32;1;3mcolored\x1b\[0m,'
+stdout 'main.go:10:1: "coloured" is misspelled in comment$'
+! stderr .
+
+# always show suggestions
+! gospel -suggest=2
+stdout 'main.go:6:1: "coloured" is misspelled in comment \(suggest: \x1b\[32;1;3mcolored\x1b\[0m,'
+stdout 'main.go:10:1: "coloured" is misspelled in comment \(suggest: \x1b\[32;1;3mcolored\x1b\[0m,'
+! stderr .
+
+
+-- go.mod --
+module dummy
+-- main.go --
+package main
+
+func main() {
+}
+
+// coloured
+func fn1() {
+}
+
+// coloured
+func fn2() {
+}
