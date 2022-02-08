@@ -1,0 +1,14 @@
+# Show acceptance of domain words from knownWords.
+
+gospel
+! stdout .
+! stderr .
+
+-- go.mod --
+module dummy
+-- main.go --
+package main
+
+// TODO(leetcoder): Flesh out this function.
+func main() {
+}
