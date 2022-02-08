@@ -47,6 +47,7 @@ func gospel() (status int) {
 	ignoreSingle := flag.Bool("ignore-single", true, "ignore single letter words")
 	ignoreIdents := flag.Bool("ignore-idents", true, "ignore words matching identifiers")
 	camelSplit := flag.Bool("camel", true, "split words on camel case")
+	maxWordLen := flag.Int("max-word-len", 40, "ignore words longer than this (0 is no limit)")
 	words := flag.String("misspellings", "", "file to write a dictionary of misspellings (.dic format)")
 	update := flag.Bool("update-dict", false, "update misspellings dictionary instead of creating a new one")
 	lang := flag.String("lang", "en_US", "language to use")
@@ -159,6 +160,7 @@ requiring the hint to be adjusted.
 		ignoreUpper:  *ignoreUpper,
 		ignoreSingle: *ignoreSingle,
 		camelSplit:   *camelSplit,
+		maxWordLen:   *maxWordLen,
 		warn:         (ct.Italic | ct.Fg(ct.BoldRed)).Paint,
 		misspelled:   make(map[string]bool),
 	}
@@ -232,6 +234,7 @@ type checker struct {
 	ignoreUpper  bool // ignore words that are all uppercase.
 	ignoreSingle bool // ignore words that are a single rune.
 	camelSplit   bool // split words on camelCase when retrying.
+	maxWordLen   int  // ignore words longer than this.
 
 	// warn is the decoration for incorrectly spelled words.
 	warn func(...interface{}) fmt.Formatter
@@ -304,10 +307,16 @@ func (c *checker) check(text string, pos token.Pos, where string) {
 
 // isCorrect performs the word correctness checks for checker.
 func (c *checker) isCorrect(word string, isRetry bool) bool {
+	if c.maxWordLen > 0 && len(word) > c.maxWordLen {
+		return true
+	}
 	if c.ignoreUpper && allUpper(word) {
 		return true
 	}
 	if c.ignoreSingle && utf8.RuneCountInString(word) == 1 {
+		return true
+	}
+	if isNumber(word) {
 		return true
 	}
 	if c.spelling.IsCorrect(word) {
@@ -334,6 +343,10 @@ func (c *checker) isCorrect(word string, isRetry bool) bool {
 		}
 	}
 	return true
+}
+
+func isNumber(word string) bool {
+	return false
 }
 
 // Visit walks the AST performing spell checking on any string literals.
