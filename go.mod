@@ -9,6 +9,7 @@ require (
 )
 
 require (
+	github.com/kortschak/camel v0.0.0-20220208065757-0665e01e7dba // indirect
 	github.com/pkg/diff v0.0.0-20210226163009-20ebb0f2a09e // indirect
 	gopkg.in/errgo.v2 v2.1.0 // indirect
 )

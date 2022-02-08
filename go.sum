@@ -1,3 +1,5 @@
+github.com/kortschak/camel v0.0.0-20220208065757-0665e01e7dba h1:140WFLaM7yYmAjBaeulEJJ9JJ//2Mpz08e5DfGXsGKs=
+github.com/kortschak/camel v0.0.0-20220208065757-0665e01e7dba/go.mod h1:ROOXSC/EYpQz07U4MnCkMbXvKNC7O6iRolPUl/L2BZU=
 github.com/kortschak/ct v0.0.0-20140325011614-7d86dffe6951 h1:I12D1A/+qvQfb7cENS32wTtXNF9dh7S8H847WGjnJ1U=
 github.com/kortschak/ct v0.0.0-20140325011614-7d86dffe6951/go.mod h1:5l1kPezpRemBE+Nj0tHiYk9JXHpgYwg0sOC5pvEScm8=
 github.com/kortschak/hunspell v0.0.0-20220130032629-3553eecdf4e7 h1:N2v0GNR6GT0EYbO7FNbOgtw1J0fJS9K2GW4Pa6EJ3Lk=
