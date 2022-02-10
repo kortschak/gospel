@@ -14,6 +14,7 @@ import (
 	"flag"
 	"fmt"
 	"go/ast"
+	"go/scanner"
 	"go/token"
 	"io/fs"
 	"os"
@@ -54,7 +55,9 @@ func gospel() (status int) {
 	ignoreUpper := flag.Bool("ignore-upper", true, "ignore all-uppercase words")
 	ignoreSingle := flag.Bool("ignore-single", true, "ignore single letter words")
 	ignoreIdents := flag.Bool("ignore-idents", true, "ignore words matching identifiers")
+	ignoreNumbers := flag.Bool("ignore-numbers", true, "ignore Go syntax number literals")
 	camelSplit := flag.Bool("camel", true, "split words on camel case")
+	minNakedHex := flag.Int("min-naked-hex", 8, "length to recognize hex-digit words as number (0 is never ignore)")
 	maxWordLen := flag.Int("max-word-len", 40, "ignore words longer than this (0 is no limit)")
 	suggest := flag.Int("suggest", 0, "make suggestions for misspellings (0 - never, 1 - first instance, 2 - always)")
 	words := flag.String("misspellings", "", "file to write a dictionary of misspellings (.dic format)")
@@ -192,8 +195,10 @@ requiring the hint to be adjusted.
 		show:            *show,
 		ignoreUpper:     *ignoreUpper,
 		ignoreSingle:    *ignoreSingle,
+		ignoreNumbers:   *ignoreNumbers,
 		camelSplit:      *camelSplit,
 		maxWordLen:      *maxWordLen,
+		minNakedHex:     *minNakedHex,
 		makeSuggestions: *suggest,
 		warn:            (ct.Italic | ct.Fg(ct.BoldRed)).Paint,
 	}
@@ -271,11 +276,13 @@ type checker struct {
 
 	spelling *hunspell.Spell
 
-	show         bool // show the context of a misspelling.
-	ignoreUpper  bool // ignore words that are all uppercase.
-	ignoreSingle bool // ignore words that are a single rune.
-	camelSplit   bool // split words on camelCase when retrying.
-	maxWordLen   int  // ignore words longer than this.
+	show          bool // show the context of a misspelling.
+	ignoreUpper   bool // ignore words that are all uppercase.
+	ignoreSingle  bool // ignore words that are a single rune.
+	ignoreNumbers bool // ignore Go syntax number literals.
+	camelSplit    bool // split words on camelCase when retrying.
+	maxWordLen    int  // ignore words longer than this.
+	minNakedHex   int  // ignore words at least this long if only hex digits.
 
 	makeSuggestions int // make suggestions for misspelled words.
 	suggested       map[string][]string
@@ -391,7 +398,10 @@ func (c *checker) isCorrect(word string, isRetry bool) bool {
 	if c.ignoreSingle && utf8.RuneCountInString(word) == 1 {
 		return true
 	}
-	if isNumber(word) {
+	if c.minNakedHex != 0 && len(word) >= c.minNakedHex && isHex(word) {
+		return true
+	}
+	if c.ignoreNumbers && isNumber(word) {
 		return true
 	}
 	if c.spelling.IsCorrect(word) {
@@ -418,10 +428,6 @@ func (c *checker) isCorrect(word string, isRetry bool) bool {
 		}
 	}
 	return true
-}
-
-func isNumber(word string) bool {
-	return false
 }
 
 // Visit walks the AST performing spell checking on any string literals.
@@ -500,6 +506,33 @@ func allUpper(s string) bool {
 	return true
 }
 
+// isHex returns whether all bytes of s are hex digits.
+func isHex(s string) bool {
+	for _, b := range s {
+		b |= 'a' - 'A' // Lower case in the relevant range.
+		if (b < '0' || '9' < b) && (b < 'a' || 'f' < b) {
+			return false
+		}
+	}
+	return true
+}
+
+var (
+	fset = token.NewFileSet()
+	scan scanner.Scanner
+)
+
+// isNumber abuses the go/scanner to check whether word is a number.
+func isNumber(word string) bool {
+	var errored bool
+	eh := func(_ token.Position, _ string) {
+		errored = true
+	}
+	scan.Init(fset.AddFile("", fset.Base(), len(word)), []byte(word), eh, 0)
+	_, tok, lit := scan.Scan()
+	return !errored && lit == word && (tok == token.INT || tok == token.FLOAT || tok == token.IMAG)
+}
+
 // join returns the string join of the given args.
 func join(args []interface{}) string {
 	var buf strings.Builder
@@ -572,7 +605,7 @@ func isSplitter(prev, curr rune, next []byte) bool {
 // isWordSplitPunct returns whether the previous, current and next runes
 // indicate that the current rune splits words.
 func isWordSplitPunct(prev, curr rune, next []byte) bool {
-	return curr != '_' && unicode.IsPunct(curr) && !isApostrophe(prev, curr, next)
+	return curr != '_' && unicode.IsPunct(curr) && !isApostrophe(prev, curr, next) && !isExponentSign(prev, curr, next)
 }
 
 // isApostrophe returns whether the current rune is an apostrophe. The heuristic
@@ -584,6 +617,17 @@ func isApostrophe(last, curr rune, data []byte) bool {
 	}
 	next, _ := utf8.DecodeRune(data)
 	return unicode.IsLetter(last) && unicode.IsLetter(next)
+}
+
+// isExponentSign returns whether the current rune is an an exponent sign, the
+// heuristic is that the last rune is an e and the next is a digit.
+func isExponentSign(last, curr rune, data []byte) bool {
+	if curr != '-' {
+		return false
+	}
+	last |= 'a' - 'A'
+	next, _ := utf8.DecodeRune(data)
+	return last == 'e' && unicode.IsDigit(next)
 }
 
 // addNoteAuthors is derived from the go/doc readNotes function.
