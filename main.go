@@ -703,10 +703,10 @@ func isEscapeSplitter(r rune, next []byte, doubleQuoted bool) (width int, ok boo
 		if len(next) == 3 {
 			for _, c := range next {
 				if c < '0' || '7' < c {
-					return 3, false
+					return 0, false
 				}
 			}
-			return 0, false
+			return 3, false
 		}
 		return 0, !doubleQuoted
 	}
