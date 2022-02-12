@@ -1,0 +1,87 @@
+gospel -show=false -check-strings
+! stdout .
+! stderr .
+
+-- go.mod --
+module dummy
+-- main.go --
+package main
+
+// mistake\wrong\x20word
+func main() {
+		const s = "all\u0000FINE\U00000000WORDS"
+}
+
+const zipdata = "PK\x03\x04\n\x00\x00\x00\x00\x00\xf1c9R\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\a\x00\x1c\x00Africa/UT\t\x00\x03\x15\xac\x0e`\x15\xac\x0e`ux\v\x00\x01\x04\xe8\x03\x00\x00" +
+	"\x04\xe8\x03\x00\x00PK\x03\x04\n\x00\x00\x00\x00\x00\xf1c9R\xb4\x8d\x98ƿ\x00\x00\x00\xbf\x00\x00\x00\x0e\x00\x1c\x00Africa/NairobiUT\t\x00\x03\x15\xac\x0e`\x15\xac" +
+	"\x0e`ux\v\x00\x01\x04\xe8\x03\x00\x00\x04\xe8\x03\x00\x00TZif2\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x01\x00\x00\x00"
+
+// Bit masks for each code point under U+0100, for fast lookup.
+const (
+	pC     = 1 << iota // a control character.
+	pP                 // a punctuation character.
+	pN                 // a numeral.
+	pS                 // a symbolic character.
+	pZ                 // a spacing character.
+	pLu                // an upper-case letter.
+	pLl                // a lower-case letter.
+	pp                 // a printable character according to Go's definition.
+	pg     = pp | pZ   // a graphical character according to the Unicode definition.
+	pLo    = pLl | pLu // a letter that is neither upper nor lower case.
+	pLmask = pLo
+
+	MaxLatin1       = '\u00FF'     // maximum Latin-1 value.
+)
+
+var properties = [MaxLatin1 + 1]uint8{
+	0x00: pC,       // '\x00'
+	0x01: pC,       // '\x01'
+	0x02: pC,       // '\x02'
+	0x03: pC,       // '\x03'
+	0x04: pC,       // '\x04'
+	0x05: pC,       // '\x05'
+	0x06: pC,       // '\x06'
+	0x07: pC,       // '\a'
+	0x08: pC,       // '\b'
+	0x09: pC,       // '\t'
+	0x0A: pC,       // '\n'
+	0x0B: pC,       // '\v'
+	0x0C: pC,       // '\f'
+	0x0D: pC,       // '\r'
+	0x0E: pC,       // '\x0e'
+	0x0F: pC,       // '\x0f'
+	0x10: pC,       // '\x10'
+	0x11: pC,       // '\x11'
+	0x12: pC,       // '\x12'
+	0x13: pC,       // '\x13'
+	0x14: pC,       // '\x14'
+	0x15: pC,       // '\x15'
+	0x16: pC,       // '\x16'
+	0x17: pC,       // '\x17'
+	0x18: pC,       // '\x18'
+	0x19: pC,       // '\x19'
+	0x1A: pC,       // '\x1a'
+	0x1B: pC,       // '\x1b'
+	0x1C: pC,       // '\x1c'
+	0x1D: pC,       // '\x1d'
+	0x1E: pC,       // '\x1e'
+	0x1F: pC,       // '\x1f'
+	0x5B: pP | pp,  // '['
+	0x5C: pP | pp,  // '\\'
+	0x7F: pC,       // '\u007f'
+	0x80: pC,       // '\u0080'
+	0x81: pC,       // '\u0081'
+	0x82: pC,       // '\u0082'
+	0x83: pC,       // '\u0083'
+	0x84: pC,       // '\u0084'
+	0x85: pC,       // '\u0085'
+	0x86: pC,       // '\u0086'
+	0x87: pC,       // '\u0087'
+	0x88: pC,       // '\u0088'
+	0x89: pC,       // '\u0089'
+	0xAD: 0,        // '\u00ad'
+}
+-- .words --
+2
+TZif2
+ux

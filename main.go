@@ -401,6 +401,9 @@ func (c *checker) isCorrect(word string, isRetry bool) bool {
 	if c.minNakedHex != 0 && len(word) >= c.minNakedHex && isHex(word) {
 		return true
 	}
+	if isHexRune(word) {
+		return true
+	}
 	if c.ignoreNumbers && isNumber(word) {
 		return true
 	}
@@ -533,6 +536,32 @@ func isNumber(word string) bool {
 	return !errored && lit == word && (tok == token.INT || tok == token.FLOAT || tok == token.IMAG)
 }
 
+// isHexRune returns whether word can be interpreted and a \x, \u, \U or
+// \xxx octal rune literal.
+func isHexRune(word string) bool {
+	if len(word) < 4 || word[0] != '\\' {
+		return false
+	}
+	switch word[1] {
+	case 'x':
+		return len(word) == 4 && isHex(word[2:4])
+	case 'u':
+		return len(word) == 6 && isHex(word[2:6])
+	case 'U':
+		return len(word) == 10 && isHex(word[2:10])
+	default:
+		if len(word) == 4 {
+			return false
+		}
+		for _, c := range word[1:] {
+			if c < '0' || '7' < c {
+				return false
+			}
+		}
+		return true
+	}
+}
+
 // join returns the string join of the given args.
 func join(args []interface{}) string {
 	var buf strings.Builder
@@ -546,6 +575,8 @@ func join(args []interface{}) string {
 // position of the last found word in the scanner source.
 type words struct {
 	current span
+
+	doubleQuoted bool
 }
 
 type span struct {
@@ -574,6 +605,12 @@ func (w *words) ScanWords(data []byte, atEOF bool) (advance int, token []byte, e
 			prev = r
 			break
 		}
+		wid, ok := isEscapeSplitter(r, data[i+width:], w.doubleQuoted)
+		width += wid
+		if !ok {
+			prev = r
+			break
+		}
 		prev = r
 	}
 	w.current.pos += start
@@ -583,6 +620,12 @@ func (w *words) ScanWords(data []byte, atEOF bool) (advance int, token []byte, e
 		var r rune
 		r, width = utf8.DecodeRune(data[i:])
 		if isSplitter(prev, r, data[i+width:]) {
+			w.current.end += i + width
+			return i + width, data[start:i], nil
+		}
+		wid, ok := isEscapeSplitter(r, data[i+width:], w.doubleQuoted)
+		width += wid
+		if ok {
 			w.current.end += i + width
 			return i + width, data[start:i], nil
 		}
@@ -605,7 +648,45 @@ func isSplitter(prev, curr rune, next []byte) bool {
 // isWordSplitPunct returns whether the previous, current and next runes
 // indicate that the current rune splits words.
 func isWordSplitPunct(prev, curr rune, next []byte) bool {
-	return curr != '_' && unicode.IsPunct(curr) && !isApostrophe(prev, curr, next) && !isExponentSign(prev, curr, next)
+	return curr != '_' && curr != '\\' && unicode.IsPunct(curr) && !isApostrophe(prev, curr, next) && !isExponentSign(prev, curr, next)
+}
+
+// isEscapeSplitter returns whether the current rune and next runes indicate
+// the current rune splits words as an escape sequence consuming width bytes.
+// \x, \u and \U rune literals do not split words.
+func isEscapeSplitter(r rune, next []byte, doubleQuoted bool) (width int, ok bool) {
+	if r != '\\' || len(next) == 0 {
+		return 0, false
+	}
+	switch next[0] {
+	case 'a', 'b', 'f', 'n', 'r', 't', 'v', '\\', '\'', '"':
+		return 1, true
+	case 'x':
+		if len(next) < 2 || isHex(string(next[:2])) {
+			return 0, false
+		}
+		return 3, !doubleQuoted
+	case 'u':
+		if len(next) < 4 || isHex(string(next[:4])) {
+			return 0, false
+		}
+		return 5, !doubleQuoted
+	case 'U':
+		if len(next) < 8 || isHex(string(next[:8])) {
+			return 0, false
+		}
+		return 9, !doubleQuoted
+	default:
+		if len(next) == 3 {
+			for _, c := range next {
+				if c < '0' || '7' < c {
+					return 3, false
+				}
+			}
+			return 0, false
+		}
+		return 0, !doubleQuoted
+	}
 }
 
 // isApostrophe returns whether the current rune is an apostrophe. The heuristic
