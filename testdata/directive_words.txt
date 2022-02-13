@@ -1,18 +1,27 @@
 # Ignore words in directive comments.
 ! gospel -show=false -ignore-idents=false
-stdout 'main.go:3:1: "sumtype" is misspelled in comment'
-stdout 'main.go:3:1: "ignoretypes" is misspelled in comment'
+stdout 'main.go:5:1: "gennerated" is misspelled in comment'
+stdout 'main.go:5:1: "sumtype" is misspelled in comment'
+stdout 'main.go:5:1: "ignoretypes" is misspelled in comment'
 ! stderr .
 
-gospel -show=false
-! stdout .
+! gospel -show=false -misspellings=words
+stdout 'main.go:5:1: "gennerated" is misspelled in comment'
 ! stderr .
+
+cmp words expected_words
 
 -- go.mod --
 module dummy
 -- main.go --
 package main
 
+//lint:file-ignore U1000 Ignore all unused code, it's gennerated
+
+// This is gennerated.
 //go-sumtype:ignoretypes
 func main() {
 }
+-- expected_words --
+1
+gennerated
