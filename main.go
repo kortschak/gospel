@@ -215,6 +215,12 @@ requiring the hint to be adjusted.
 				ast.Walk(c, f)
 			}
 			for _, g := range f.Comments {
+				// TODO(kortschak): Check each line of comment
+				// individually and provide ±line of context.
+				// This reduces output and takes the user to
+				// the error location more quickly. It also
+				// means that we can spell check reasons in
+				// linting and compiler directives.
 				c.check(g.Text(), g.Pos(), "comment")
 			}
 		}

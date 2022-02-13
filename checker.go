@@ -231,7 +231,10 @@ func directiveWords(files []*ast.File, fset *token.FileSet) []string {
 		for _, g := range m {
 			for _, cg := range g {
 				for _, c := range cg.List {
-					text := strings.TrimLeft(c.Text, "/*")
+					if !strings.HasPrefix(c.Text, "//") {
+						continue
+					}
+					text := strings.TrimPrefix(c.Text, "//")
 					if strings.HasPrefix(text, " ") {
 						continue
 					}
@@ -242,8 +245,9 @@ func directiveWords(files []*ast.File, fset *token.FileSet) []string {
 					if strings.HasPrefix(text[idx+1:], " ") {
 						continue
 					}
-					lines := strings.SplitN(text, "\n", 2)
-					words = append(words, strings.FieldsFunc(lines[0], func(r rune) bool {
+					line := strings.SplitN(text, "\n", 2)[0]
+					directive := strings.SplitN(line, " ", 2)[0]
+					words = append(words, strings.FieldsFunc(directive, func(r rune) bool {
 						return unicode.IsSpace(r) || unicode.IsSymbol(r) || unicode.IsPunct(r)
 					})...)
 				}
