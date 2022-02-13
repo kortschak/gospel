@@ -12,6 +12,7 @@ import (
 	"go/token"
 	"go/types"
 	"strings"
+	"unicode"
 	"unicode/utf8"
 
 	"github.com/kortschak/camel"
@@ -200,6 +201,11 @@ func addIdentifiers(spelling *hunspell.Spell, pkgs []*packages.Package, seen map
 				spelling.Add(e)
 			}
 		}
+		for _, w := range directiveWords(p.Syntax, p.Fset) {
+			if !spelling.IsCorrect(w) {
+				spelling.Add(w)
+			}
+		}
 		for _, f := range p.Syntax {
 			ast.Walk(v, f)
 		}
@@ -215,6 +221,36 @@ func addIdentifiers(spelling *hunspell.Spell, pkgs []*packages.Package, seen map
 		return errors.New("missed adding %d identifiers")
 	}
 	return nil
+}
+
+// directiveWords returns words used in directive comments.
+func directiveWords(files []*ast.File, fset *token.FileSet) []string {
+	var words []string
+	for _, f := range files {
+		m := ast.NewCommentMap(fset, f, f.Comments)
+		for _, g := range m {
+			for _, cg := range g {
+				for _, c := range cg.List {
+					text := strings.TrimLeft(c.Text, "/*")
+					if strings.HasPrefix(text, " ") {
+						continue
+					}
+					idx := strings.Index(text, ":")
+					if idx < 1 {
+						continue
+					}
+					if strings.HasPrefix(text[idx+1:], " ") {
+						continue
+					}
+					lines := strings.SplitN(text, "\n", 2)
+					words = append(words, strings.FieldsFunc(lines[0], func(r rune) bool {
+						return unicode.IsSpace(r) || unicode.IsSymbol(r) || unicode.IsPunct(r)
+					})...)
+				}
+			}
+		}
+	}
+	return words
 }
 
 // adder is an ast.Visitor that adds tokens to a spelling dictionary.
