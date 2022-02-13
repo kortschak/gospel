@@ -6,7 +6,6 @@
 ! stdout '"edded"'
 stdout 'main.go:3:1: "badtag" is misspelled in comment'
 stdout 'main.go:3:1: "unmaskedmistake" is misspelled in comment'
-stdout 'main.go:3:1: "unexported" is misspelled in comment'
 stdout 'main.go:3:1: "failedmistake" is misspelled in comment'
 ! stderr .
 
