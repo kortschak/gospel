@@ -1,4 +1,4 @@
-gospel -show=false -check-strings
+gospel -show=false -check-strings -max-word-len=16
 ! stdout .
 ! stderr .
 
@@ -87,6 +87,9 @@ var properties = [MaxLatin1 + 1]uint8{
 	0xAD: 0,        // '\u00ad'
 }
 -- .words --
-2
-TZif2
+5
+0e
 ux
+x0e
+x15
+xac

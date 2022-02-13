@@ -20,6 +20,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/kortschak/camel"
 	"github.com/kortschak/ct"
 	"github.com/kortschak/hunspell"
 	"golang.org/x/tools/go/packages"
@@ -187,6 +188,7 @@ requiring the hint to be adjusted.
 
 	c := &checker{
 		spelling:        spelling,
+		camel:           camel.NewSplitter([]string{"\\"}),
 		show:            *show,
 		ignoreUpper:     *ignoreUpper,
 		ignoreSingle:    *ignoreSingle,

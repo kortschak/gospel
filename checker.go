@@ -25,6 +25,7 @@ type checker struct {
 	fileset *token.FileSet
 
 	spelling *hunspell.Spell
+	camel    camel.Splitter
 
 	show          bool // show the context of a misspelling.
 	ignoreUpper   bool // ignore words that are all uppercase.
@@ -171,7 +172,7 @@ func (c *checker) isCorrect(word string, isRetry bool) bool {
 	if c.camelSplit {
 		// TODO(kortschak): Allow user-configurable
 		// known words for camel case splitting.
-		fragments = camel.Split(word)
+		fragments = c.camel.Split(word)
 	} else {
 		fragments = strings.Split(word, "_")
 	}
