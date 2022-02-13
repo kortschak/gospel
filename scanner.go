@@ -35,14 +35,10 @@ func (w *words) ScanWords(data []byte, atEOF bool) (advance int, token []byte, e
 	start := 0
 	w.current.pos = w.current.end
 	var prev rune
-	for width, i := 0, 0; start < len(data); start += width {
+	for width := 0; start < len(data); start += width {
 		var r rune
 		r, width = utf8.DecodeRune(data[start:])
-		if !isSplitter(prev, r, data[i+width:]) {
-			prev = r
-			break
-		}
-		wid, ok := isEscapeSplitter(r, data[i+width:], w.doubleQuoted)
+		wid, ok := isSplitter(prev, r, data[start+width:], w.doubleQuoted)
 		width += wid
 		if !ok {
 			prev = r
@@ -52,15 +48,11 @@ func (w *words) ScanWords(data []byte, atEOF bool) (advance int, token []byte, e
 	}
 	w.current.pos += start
 
-	// Scan until space, marking end of word.
+	// Scan until split, marking end of word.
 	for width, i := 0, start; i < len(data); i += width {
 		var r rune
 		r, width = utf8.DecodeRune(data[i:])
-		if isSplitter(prev, r, data[i+width:]) {
-			w.current.end += i + width
-			return i + width, data[start:i], nil
-		}
-		wid, ok := isEscapeSplitter(r, data[i+width:], w.doubleQuoted)
+		wid, ok := isSplitter(prev, r, data[i+width:], w.doubleQuoted)
 		width += wid
 		if ok {
 			w.current.end += i + width
@@ -78,52 +70,72 @@ func (w *words) ScanWords(data []byte, atEOF bool) (advance int, token []byte, e
 	return start, nil, nil
 }
 
-func isSplitter(prev, curr rune, next []byte) bool {
-	return unicode.IsSpace(curr) || unicode.IsSymbol(curr) || isWordSplitPunct(prev, curr, next)
+// isSplitter returns whether the previous, current rune and next runes indicate
+// the current rune splits words.
+func isSplitter(prev, curr rune, next []byte, doubleQuoted bool) (width int, ok bool) {
+	if unicode.IsSpace(curr) || unicode.IsSymbol(curr) || isWordSplitPunct(prev, curr, next) {
+		return 0, true
+	}
+
+	// Handle rune literals as best we can.
+	if curr != '\\' || len(next) == 0 {
+		return 0, false
+	}
+	r1, width := utf8.DecodeRune(next[1:])
+	if r1 == utf8.RuneError {
+		return 0, false
+	}
+	r2, _ := utf8.DecodeRune(next[width:])
+	if r2 == utf8.RuneError {
+		return 0, false
+	}
+	if unicode.IsSpace(r2) || unicode.IsPunct(r2) || unicode.IsSymbol(r2) {
+		return width, true
+	}
+	switch next[0] {
+	case 'a', 'b', 'f', 'n', 'r', 't', 'v', '\\', '\'', '"':
+		return 1, !doubleQuoted
+	case 'x':
+		if len(next) < 2 {
+			return 0, false
+		}
+		if !isHex(string(next[:2])) {
+			return 1, false
+		}
+		return 3, !doubleQuoted
+	case 'u':
+		if len(next) < 4 {
+			return 0, false
+		}
+		if !isHex(string(next[:4])) {
+			return 1, false
+		}
+		return 5, !doubleQuoted
+	case 'U':
+		if len(next) < 8 {
+			return 0, false
+		}
+		if !isHex(string(next[:8])) {
+			return 1, false
+		}
+		return 9, !doubleQuoted
+	default:
+		if len(next) < 3 {
+			return 0, false
+		}
+		for _, c := range next {
+			if c < '0' || '7' < c {
+				return 0, false
+			}
+		}
+		return 3, !doubleQuoted
+	}
 }
 
 // isWordSplitPunct returns whether the previous, current and next runes
 // indicate that the current rune splits words.
 func isWordSplitPunct(prev, curr rune, next []byte) bool {
 	return curr != '_' && curr != '\\' && unicode.IsPunct(curr) && !isApostrophe(prev, curr, next) && !isExponentSign(prev, curr, next)
-}
-
-// isEscapeSplitter returns whether the current rune and next runes indicate
-// the current rune splits words as an escape sequence consuming width bytes.
-// \x, \u and \U rune literals do not split words.
-func isEscapeSplitter(r rune, next []byte, doubleQuoted bool) (width int, ok bool) {
-	if r != '\\' || len(next) == 0 {
-		return 0, false
-	}
-	switch next[0] {
-	case 'a', 'b', 'f', 'n', 'r', 't', 'v', '\\', '\'', '"':
-		return 1, true
-	case 'x':
-		if len(next) < 2 || isHex(string(next[:2])) {
-			return 0, false
-		}
-		return 3, !doubleQuoted
-	case 'u':
-		if len(next) < 4 || isHex(string(next[:4])) {
-			return 0, false
-		}
-		return 5, !doubleQuoted
-	case 'U':
-		if len(next) < 8 || isHex(string(next[:8])) {
-			return 0, false
-		}
-		return 9, !doubleQuoted
-	default:
-		if len(next) == 3 {
-			for _, c := range next {
-				if c < '0' || '7' < c {
-					return 0, false
-				}
-			}
-			return 3, false
-		}
-		return 0, !doubleQuoted
-	}
 }
 
 // isApostrophe returns whether the current rune is an apostrophe. The heuristic
