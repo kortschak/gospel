@@ -11,6 +11,7 @@ import (
 	"go/ast"
 	"go/token"
 	"go/types"
+	"io"
 	"strings"
 	"unicode"
 	"unicode/utf8"
@@ -18,6 +19,7 @@ import (
 	"github.com/kortschak/camel"
 	"github.com/kortschak/hunspell"
 	"golang.org/x/tools/go/packages"
+	"mvdan.cc/xurls/v2"
 )
 
 // checker implement an AST-walking spell checker.
@@ -31,6 +33,7 @@ type checker struct {
 	ignoreUpper   bool // ignore words that are all uppercase.
 	ignoreSingle  bool // ignore words that are a single rune.
 	ignoreNumbers bool // ignore Go syntax number literals.
+	maskURLs      bool // mask URLs before checking.
 	camelSplit    bool // split words on camelCase when retrying.
 	maxWordLen    int  // ignore words longer than this.
 	minNakedHex   int  // ignore words at least this long if only hex digits.
@@ -55,7 +58,7 @@ type checker struct {
 // check checks the provided text and outputs information about any misspellings
 // in the text.
 func (c *checker) check(text string, pos token.Pos, where string) {
-	sc := bufio.NewScanner(strings.NewReader(text))
+	sc := bufio.NewScanner(c.textReader(text))
 	w := words{}
 	sc.Split(w.ScanWords)
 
@@ -132,6 +135,21 @@ func (c *checker) check(text string, pos token.Pos, where string) {
 		}
 		fmt.Printf("\t%s\n", strings.Join(lines, "\n\t"))
 	}
+}
+
+// urls is used for masking URLs in check.
+var urls = xurls.Strict()
+
+// textReader returns an io.Reader containing the provided text conditioned
+// according to the configuration.
+func (c *checker) textReader(text string) io.Reader {
+	if c.maskURLs {
+		masked := urls.ReplaceAllStringFunc(text, func(s string) string {
+			return strings.Repeat(" ", len(s))
+		})
+		return strings.NewReader(masked)
+	}
+	return strings.NewReader(text)
 }
 
 // empty is a word suggestion sentinel indicating that previous suggestion
