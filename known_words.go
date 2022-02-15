@@ -8,7 +8,12 @@ package main
 // may not be in user dictionaries. It is used to construct a
 // temporary dictionary to load into hunspell.
 var knownWords = []string{
-	"golang",
+	"golang/M",
+
+	// Place-holders for rules. This is used to provide pluralisation
+	// rules for idents. Included just in case the locale's dictionary
+	// doesn't have it.
+	"item/MS",
 
 	// Keywords
 	"break/BMZGRS", "case/LDSJMG", "chan/MS", "const/MS", "continue/EGDS",
