@@ -287,7 +287,10 @@ type adder struct {
 func (a *adder) Visit(n ast.Node) ast.Visitor {
 	switch n := n.(type) {
 	case *ast.Ident:
-		a.addWordUnknownWord(stripUnderscores(n.Name))
+		// Check whether this is a type and only make it
+		// countable in that case.
+		ok := n.Obj != nil && n.Obj.Kind == ast.Typ
+		a.addWordUnknownWord(stripUnderscores(n.Name), ok)
 	case *ast.StructType:
 		typ, ok := a.pkg.TypesInfo.Types[n].Type.(*types.Struct)
 		if !ok {
@@ -299,18 +302,27 @@ func (a *adder) Visit(n ast.Node) ast.Visitor {
 				continue
 			}
 			for _, w := range extractStructTagWords(typ.Tag(i)) {
-				a.addWordUnknownWord(w)
+				a.addWordUnknownWord(w, false)
 			}
 		}
 	}
 	return a
 }
 
-func (a *adder) addWordUnknownWord(w string) {
+func (a *adder) addWordUnknownWord(w string, countable bool) {
 	if a.spelling.IsCorrect(w) {
+		// Assume we have the correct plurality rules.
+		// This should work most of the time. If it turns
+		// out to be a problem, we can make this conditional
+		// on countable and always add those terms.
 		return
 	}
-	ok := a.spelling.Add(w)
+	var ok bool
+	if countable {
+		ok = a.spelling.AddWithAffix(w, "item")
+	} else {
+		ok = a.spelling.Add(w)
+	}
 	if !ok {
 		a.failed++
 	}

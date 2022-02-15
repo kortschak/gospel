@@ -1,0 +1,22 @@
+# Show types are recognised in their plural.
+
+! gospel -show=false
+! stdout 'main.go:3:1: "privatetypes" is misspelled in comment'
+stdout 'main.go:7:2: "privatevalues" is misspelled in comment'
+! stderr .
+
+-- go.mod --
+module dummy
+-- main.go --
+package main
+
+// We can talk about privatetype and an array of privatetypes.
+type privatetype int
+
+func main() {
+	// We cannot talk about privatevalues as a plural of
+	// privatevalue, but we can talk about privatevalue's
+	// properties.
+	var privatevalue privatetype
+	println(privatevalue)
+}
