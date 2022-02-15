@@ -51,6 +51,7 @@ func gospel() (status int) {
 	ignoreSingle := flag.Bool("ignore-single", true, "ignore single letter words")
 	ignoreIdents := flag.Bool("ignore-idents", true, "ignore words matching identifiers")
 	ignoreNumbers := flag.Bool("ignore-numbers", true, "ignore Go syntax number literals")
+	maskURLs := flag.Bool("mask-urls", true, "mask URLs in text")
 	camelSplit := flag.Bool("camel", true, "split words on camel case")
 	minNakedHex := flag.Int("min-naked-hex", 8, "length to recognize hex-digit words as number (0 is never ignore)")
 	maxWordLen := flag.Int("max-word-len", 40, "ignore words longer than this (0 is no limit)")
@@ -193,6 +194,7 @@ requiring the hint to be adjusted.
 		ignoreUpper:     *ignoreUpper,
 		ignoreSingle:    *ignoreSingle,
 		ignoreNumbers:   *ignoreNumbers,
+		maskURLs:        *maskURLs,
 		camelSplit:      *camelSplit,
 		maxWordLen:      *maxWordLen,
 		minNakedHex:     *minNakedHex,

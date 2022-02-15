@@ -1,0 +1,17 @@
+# Show URLs can be ignored.
+
+! gospel -show=false -mask-urls=false
+stdout 'dummy.go:3:1: "go15heapdump" is misspelled in comment'
+! stderr .
+
+gospel -show=false -mask-urls=true
+! stdout .
+! stderr .
+
+-- go.mod --
+module dummy
+-- dummy.go --
+package dummy
+
+// The format of the dumped file is described at
+// https://golang.org/s/go15heapdump.
