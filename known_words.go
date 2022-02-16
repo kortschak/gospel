@@ -230,7 +230,6 @@ var knownWords = []string{
 	"portably",
 	"postcondition",
 	"pragma",
-	"pragma",
 	"preallocate/DSG",
 	"precalculated",
 	"precalculation",
