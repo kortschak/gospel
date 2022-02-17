@@ -179,7 +179,9 @@ func (c *checker) isCorrect(word string, isRetry bool) bool {
 	if c.spelling.IsCorrect(word) {
 		return true
 	}
-	if isRetry {
+	if isRetry || c.caseFoldMatch(word) {
+		// TODO(kortschak): Consider not adding case-fold
+		// matches to the misspelled map.
 		c.misspellings++
 		if c.misspelled != nil {
 			c.misspelled[word] = true
@@ -200,6 +202,18 @@ func (c *checker) isCorrect(word string, isRetry bool) bool {
 		}
 	}
 	return true
+}
+
+// caseFoldMatch returns whether there is a suggestion for the word that
+// is an exact match under case folding. This checks for the common error
+// of failing to adjust export visibility of labels in comments.
+func (c *checker) caseFoldMatch(word string) bool {
+	for _, suggest := range c.spelling.Suggest(word) {
+		if strings.EqualFold(suggest, word) {
+			return true
+		}
+	}
+	return false
 }
 
 // Visit walks the AST performing spell checking on any string literals.
