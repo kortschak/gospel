@@ -1,0 +1,15 @@
+# Show labels are added to dictionary; no change in functionality.
+gospel
+! stdout .
+! stderr .
+
+-- go.mod --
+module dummy
+-- main.go --
+package main
+
+func main() {
+// consideredharmful avoids stack overflow.
+consideredharmful:
+	goto consideredharmful
+}
