@@ -3,6 +3,7 @@ module github.com/kortschak/gospel
 go 1.17
 
 require (
+	github.com/BurntSushi/toml v1.0.0
 	github.com/kortschak/camel v0.0.0-20220208065757-0665e01e7dba
 	github.com/kortschak/ct v0.0.0-20140325011614-7d86dffe6951
 	github.com/rogpeppe/go-internal v1.8.1

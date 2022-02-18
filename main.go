@@ -20,6 +20,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/BurntSushi/toml"
 	"github.com/kortschak/hunspell"
 	"golang.org/x/tools/go/packages"
 )
@@ -44,48 +45,55 @@ const (
 
 // config holds application-wide user configuration values.
 type config struct {
-	show            bool // show the context of a misspelling.
-	checkStrings    bool // check string literals as well as comments.
-	ignoreUpper     bool // ignore words that are all uppercase.
-	ignoreSingle    bool // ignore words that are a single rune.
-	ignoreNumbers   bool // ignore Go syntax number literals.
-	maskURLs        bool // mask URLs before checking.
-	camelSplit      bool // split words on camelCase when retrying.
-	maxWordLen      int  // ignore words longer than this.
-	minNakedHex     int  // ignore words at least this long if only hex digits.
-	makeSuggestions int  // make suggestions for misspelled words.
+	Show            bool `toml:"show"`           // show the context of a misspelling.
+	CheckStrings    bool `toml:"check_strings"`  // check string literals as well as comments.
+	IgnoreUpper     bool `toml:"ignore_upper"`   // ignore words that are all uppercase.
+	ignoreSingle    bool `toml:"ignore_single"`  // ignore words that are a single rune.
+	IgnoreNumbers   bool `toml:"ignore_numbers"` // ignore Go syntax number literals.
+	MaskURLs        bool `toml:"mask_urls"`      // mask URLs before checking.
+	CamelSplit      bool `toml:"camel"`          // split words on camelCase when retrying.
+	MaxWordLen      int  `toml:"max_word_len"`   // ignore words longer than this.
+	MinNakedHex     int  `toml:"min_naked_hex"`  // ignore words at least this long if only hex digits.
+	MakeSuggestions int  `toml:"suggest"`        // make suggestions for misspelled words.
 }
 
 var defaults = config{
-	show:            true,
-	checkStrings:    false,
-	ignoreUpper:     true,
+	Show:            true,
+	CheckStrings:    false,
+	IgnoreUpper:     true,
 	ignoreSingle:    true,
-	ignoreNumbers:   true,
-	maskURLs:        true,
-	camelSplit:      true,
-	maxWordLen:      40,
-	minNakedHex:     8,
-	makeSuggestions: never,
+	IgnoreNumbers:   true,
+	MaskURLs:        true,
+	CamelSplit:      true,
+	MaxWordLen:      40,
+	MinNakedHex:     8,
+	MakeSuggestions: never,
 }
 
 func gospel() (status int) {
-	config := defaults
-	flag.BoolVar(&config.show, "show", defaults.show, "print comment or string with misspellings")
-	flag.BoolVar(&config.checkStrings, "check-strings", defaults.checkStrings, "check string literals")
-	flag.BoolVar(&config.ignoreUpper, "ignore-upper", defaults.ignoreUpper, "ignore all-uppercase words")
-	flag.BoolVar(&config.ignoreSingle, "ignore-single", defaults.ignoreSingle, "ignore single letter words")
+	config, status, err := loadConfig()
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return status
+	}
+
+	flag.BoolVar(&config.Show, "show", config.Show, "print comment or string with misspellings")
+	flag.BoolVar(&config.CheckStrings, "check-strings", config.CheckStrings, "check string literals")
+	flag.BoolVar(&config.IgnoreUpper, "ignore-upper", config.IgnoreUpper, "ignore all-uppercase words")
+	flag.BoolVar(&config.ignoreSingle, "ignore-single", config.ignoreSingle, "ignore single letter words")
+	flag.BoolVar(&config.IgnoreNumbers, "ignore-numbers", config.IgnoreNumbers, "ignore Go syntax number literals")
+	flag.BoolVar(&config.MaskURLs, "mask-urls", config.MaskURLs, "mask URLs in text")
+	flag.BoolVar(&config.CamelSplit, "camel", config.CamelSplit, "split words on camel case")
+	flag.IntVar(&config.MinNakedHex, "min-naked-hex", config.MinNakedHex, "length to recognize hex-digit words as number (0 is never ignore)")
+	flag.IntVar(&config.MaxWordLen, "max-word-len", config.MaxWordLen, "ignore words longer than this (0 is no limit)")
+	flag.IntVar(&config.MakeSuggestions, "suggest", config.MakeSuggestions, "make suggestions for misspellings (0 - never, 1 - first instance, 2 - always)")
 	ignoreIdents := flag.Bool("ignore-idents", true, "ignore words matching identifiers")
-	flag.BoolVar(&config.ignoreNumbers, "ignore-numbers", defaults.ignoreNumbers, "ignore Go syntax number literals")
-	flag.BoolVar(&config.maskURLs, "mask-urls", defaults.maskURLs, "mask URLs in text")
-	flag.BoolVar(&config.camelSplit, "camel", defaults.maskURLs, "split words on camel case")
-	flag.IntVar(&config.minNakedHex, "min-naked-hex", defaults.minNakedHex, "length to recognize hex-digit words as number (0 is never ignore)")
-	flag.IntVar(&config.maxWordLen, "max-word-len", defaults.maxWordLen, "ignore words longer than this (0 is no limit)")
-	flag.IntVar(&config.makeSuggestions, "suggest", defaults.makeSuggestions, "make suggestions for misspellings (0 - never, 1 - first instance, 2 - always)")
-	words := flag.String("misspellings", "", "file to write a dictionary of misspellings (.dic format)")
-	update := flag.Bool("update-dict", false, "update misspellings dictionary instead of creating a new one")
 	lang := flag.String("lang", "en_US", "language to use")
 	dicts := flag.String("dict-paths", path, "directory list containing hunspell dictionaries")
+	words := flag.String("misspellings", "", "file to write a dictionary of misspellings (.dic format)")
+	update := flag.Bool("update-dict", false, "update misspellings dictionary instead of creating a new one")
+	writeConf := flag.Bool("write-config", false, "write config file based on flags and existing config to stdout and exit")
+	flag.Bool("config", true, "use config file") // Included for documentation.
 	flag.Usage = func() {
 		fmt.Fprintf(flag.CommandLine.Output(), `usage: %s [options] [packages]
 
@@ -103,6 +111,11 @@ for the number of words in the dictionary and is populated correctly by the
 misspellings option. The file may be edited to remove incorrect words without
 requiring the hint to be adjusted.
 
+If a .gospel.conf file exists in the root of the current module and the config
+flag is true (default) it will be used to populate selected flag defaults:
+show, check-strings, ignore-upper, ignore-single, ignore-numbers, mask-urls,
+camel, min-naked-hex, max-word-len and suggest.
+
 `, os.Args[0])
 		flag.PrintDefaults()
 	}
@@ -112,14 +125,17 @@ requiring the hint to be adjusted.
 		fmt.Fprintln(os.Stderr, "missing lang flag")
 		return invocationError
 	}
-	if config.makeSuggestions < never || always < config.makeSuggestions {
+	if config.MakeSuggestions < never || always < config.MakeSuggestions {
 		fmt.Fprintln(os.Stderr, "invalid suggest flag value")
 		return invocationError
 	}
-	var (
-		spelling *hunspell.Spell
-		err      error
-	)
+
+	if *writeConf {
+		toml.NewEncoder(os.Stdout).Encode(config)
+		return success
+	}
+
+	var spelling *hunspell.Spell
 	for _, p := range filepath.SplitList(*dicts) {
 		if strings.HasPrefix(p, "~"+string(filepath.Separator)) {
 			dir, err := os.UserHomeDir()
@@ -220,7 +236,7 @@ requiring the hint to be adjusted.
 	for _, p := range pkgs {
 		c.fileset = p.Fset
 		for _, f := range p.Syntax {
-			if c.checkStrings {
+			if c.CheckStrings {
 				ast.Walk(c, f)
 			}
 			for _, g := range f.Comments {
@@ -280,4 +296,62 @@ requiring the hint to be adjusted.
 	}
 
 	return status
+}
+
+const configFile = ".gospel.conf"
+
+// loadConfig returns a config if one can be found in the root of the
+// current module. It also returns a status and error for user information.
+func loadConfig() (_ config, status int, err error) {
+	// Using to the flag package to get this information early results
+	// in horrific convolutions, and while it works, it is sludgy. So
+	// do the work ourselves.
+	useConfig := true // Default to true.
+	args := os.Args[1:]
+loop:
+	for _, arg := range args {
+		if strings.HasPrefix(arg, "--") {
+			arg = arg[1:]
+		}
+		if !strings.HasPrefix(arg, "-config") {
+			continue
+		}
+		val := strings.TrimPrefix(arg, "-config")
+		switch val {
+		case "", "=true":
+			useConfig = true
+			break loop
+		case "=false":
+			useConfig = false
+			break loop
+		default:
+			// Let command-line flag parser handle this.
+			return config{}, success, nil
+		}
+	}
+	if !useConfig {
+		return defaults, success, nil
+	}
+
+	cfg := &packages.Config{Mode: packages.NeedModule}
+	pkgs, err := packages.Load(cfg, ".")
+	if err != nil {
+		// Can't find module, but we may have been asked for other
+		// things, so if there are errors, let the actual package
+		// loader find then.
+		return defaults, success, nil
+	}
+	mod := pkgs[0].Module
+	if mod == nil {
+		return defaults, success, nil
+	}
+
+	_, err = toml.DecodeFile(filepath.Join(mod.Dir, configFile), &defaults)
+	if err != nil {
+		if errors.Is(err, fs.ErrNotExist) {
+			return defaults, success, nil
+		}
+		return config{}, invocationError, err
+	}
+	return defaults, success, nil
 }

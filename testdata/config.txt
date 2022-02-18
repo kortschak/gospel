@@ -1,0 +1,26 @@
+# Show config can be used and turned off.
+! gospel -show=false
+stdout 'main.go:3:25: "Mistooken" is misspelled in string'
+stdout 'main.go:3:25: "tæxt" is misspelled in string'
+! stderr .
+
+! gospel -show=false -config=true
+stdout 'main.go:3:25: "Mistooken" is misspelled in string'
+stdout 'main.go:3:25: "tæxt" is misspelled in string'
+! stderr .
+
+gospel -show=false -config=false
+! stdout .
+! stderr .
+
+-- go.mod --
+module dummy
+-- main.go --
+package main
+
+const erroneousString = "Mistooken tæxt"
+
+func main() {
+}
+-- .gospel.conf --
+check_strings = true

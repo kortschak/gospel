@@ -1,0 +1,22 @@
+# Show config can be written.
+gospel -write-config -max-word-len=30
+
+cmp stdout gospel.conf
+
+-- go.mod --
+module dummy
+-- main.go --
+package main
+
+func main() {
+}
+-- gospel.conf --
+show = true
+check_strings = false
+ignore_upper = true
+ignore_numbers = true
+mask_urls = true
+camel = true
+max_word_len = 30
+min_naked_hex = 8
+suggest = 0
