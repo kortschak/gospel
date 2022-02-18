@@ -155,8 +155,9 @@ requiring the hint to be adjusted.
 	// a misspelling list since the list will be incomplete unless
 	// it is appended to the existing list, unless we are making
 	// and updated dictionary when we will merge them.
+	var roots map[string]bool
 	if *words == "" || *update {
-		roots := make(map[string]bool)
+		roots = make(map[string]bool)
 		for _, p := range pkgs {
 			if p.Module == nil {
 				continue
@@ -238,20 +239,22 @@ requiring the hint to be adjusted.
 	// at the top of the file so add that as well.
 	if *words != "" {
 		if *update {
-			// Carry over words from the already existing dictionary.
-			old, err := os.Open(".words")
-			if err == nil {
-				sc := bufio.NewScanner(old)
-				for i := 0; sc.Scan(); i++ {
-					if i == 0 {
-						continue
+			// Carry over words from the already existing dictionaries.
+			for r := range roots {
+				old, err := os.Open(filepath.Join(r, ".words"))
+				if err == nil {
+					sc := bufio.NewScanner(old)
+					for i := 0; sc.Scan(); i++ {
+						if i == 0 {
+							continue
+						}
+						c.misspelled[sc.Text()] = true
 					}
-					c.misspelled[sc.Text()] = true
+					old.Close()
+				} else if !errors.Is(err, fs.ErrNotExist) {
+					fmt.Fprintf(os.Stderr, "failed to open .words file: %v", err)
+					return internalError
 				}
-				old.Close()
-			} else if !errors.Is(err, fs.ErrNotExist) {
-				fmt.Fprintf(os.Stderr, "failed to open .words file: %v", err)
-				return internalError
 			}
 		}
 
