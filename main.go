@@ -20,8 +20,6 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/kortschak/camel"
-	"github.com/kortschak/ct"
 	"github.com/kortschak/hunspell"
 	"golang.org/x/tools/go/packages"
 )
@@ -43,6 +41,20 @@ const (
 	once   = 1
 	always = 2
 )
+
+// config holds application-wide user configuration values.
+type config struct {
+	show            bool // show the context of a misspelling.
+	checkStrings    bool // check string literals as well as comments.
+	ignoreUpper     bool // ignore words that are all uppercase.
+	ignoreSingle    bool // ignore words that are a single rune.
+	ignoreNumbers   bool // ignore Go syntax number literals.
+	maskURLs        bool // mask URLs before checking.
+	camelSplit      bool // split words on camelCase when retrying.
+	maxWordLen      int  // ignore words longer than this.
+	minNakedHex     int  // ignore words at least this long if only hex digits.
+	makeSuggestions int  // make suggestions for misspelled words.
+}
 
 func gospel() (status int) {
 	show := flag.Bool("show", true, "print comment or string with misspellings")
@@ -188,10 +200,10 @@ requiring the hint to be adjusted.
 		}
 	}
 
-	c := &checker{
-		spelling:        spelling,
-		camel:           camel.NewSplitter([]string{"\\"}),
+	keep := *words != ""
+	c := newChecker(spelling, keep, config{
 		show:            *show,
+		checkStrings:    *checkStrings,
 		ignoreUpper:     *ignoreUpper,
 		ignoreSingle:    *ignoreSingle,
 		ignoreNumbers:   *ignoreNumbers,
@@ -200,23 +212,12 @@ requiring the hint to be adjusted.
 		maxWordLen:      *maxWordLen,
 		minNakedHex:     *minNakedHex,
 		makeSuggestions: *suggest,
-		warn:            (ct.Italic | ct.Fg(ct.BoldRed)).Paint,
-	}
-	if c.show {
-		c.suggest = (ct.Italic | ct.Fg(ct.BoldGreen)).Paint
-	} else {
-		c.suggest = ct.Mode(0).Paint
-	}
-	if *words != "" {
-		c.misspelled = make(map[string]bool)
-	}
-	if *suggest != never {
-		c.suggested = make(map[string][]string)
-	}
+	})
+
 	for _, p := range pkgs {
 		c.fileset = p.Fset
 		for _, f := range p.Syntax {
-			if *checkStrings {
+			if c.checkStrings {
 				ast.Walk(c, f)
 			}
 			for _, g := range f.Comments {
@@ -237,7 +238,7 @@ requiring the hint to be adjusted.
 	// Write out a dictionary of the misspelled words.
 	// The hunspell .dic format includes a count hint
 	// at the top of the file so add that as well.
-	if *words != "" {
+	if keep {
 		if *update {
 			// Carry over words from the already existing dictionaries.
 			for r := range roots {
