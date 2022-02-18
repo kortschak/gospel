@@ -56,18 +56,32 @@ type config struct {
 	makeSuggestions int  // make suggestions for misspelled words.
 }
 
+var defaults = config{
+	show:            true,
+	checkStrings:    false,
+	ignoreUpper:     true,
+	ignoreSingle:    true,
+	ignoreNumbers:   true,
+	maskURLs:        true,
+	camelSplit:      true,
+	maxWordLen:      40,
+	minNakedHex:     8,
+	makeSuggestions: never,
+}
+
 func gospel() (status int) {
-	show := flag.Bool("show", true, "print comment or string with misspellings")
-	checkStrings := flag.Bool("check-strings", false, "check string literals")
-	ignoreUpper := flag.Bool("ignore-upper", true, "ignore all-uppercase words")
-	ignoreSingle := flag.Bool("ignore-single", true, "ignore single letter words")
+	config := defaults
+	flag.BoolVar(&config.show, "show", defaults.show, "print comment or string with misspellings")
+	flag.BoolVar(&config.checkStrings, "check-strings", defaults.checkStrings, "check string literals")
+	flag.BoolVar(&config.ignoreUpper, "ignore-upper", defaults.ignoreUpper, "ignore all-uppercase words")
+	flag.BoolVar(&config.ignoreSingle, "ignore-single", defaults.ignoreSingle, "ignore single letter words")
 	ignoreIdents := flag.Bool("ignore-idents", true, "ignore words matching identifiers")
-	ignoreNumbers := flag.Bool("ignore-numbers", true, "ignore Go syntax number literals")
-	maskURLs := flag.Bool("mask-urls", true, "mask URLs in text")
-	camelSplit := flag.Bool("camel", true, "split words on camel case")
-	minNakedHex := flag.Int("min-naked-hex", 8, "length to recognize hex-digit words as number (0 is never ignore)")
-	maxWordLen := flag.Int("max-word-len", 40, "ignore words longer than this (0 is no limit)")
-	suggest := flag.Int("suggest", 0, "make suggestions for misspellings (0 - never, 1 - first instance, 2 - always)")
+	flag.BoolVar(&config.ignoreNumbers, "ignore-numbers", defaults.ignoreNumbers, "ignore Go syntax number literals")
+	flag.BoolVar(&config.maskURLs, "mask-urls", defaults.maskURLs, "mask URLs in text")
+	flag.BoolVar(&config.camelSplit, "camel", defaults.maskURLs, "split words on camel case")
+	flag.IntVar(&config.minNakedHex, "min-naked-hex", defaults.minNakedHex, "length to recognize hex-digit words as number (0 is never ignore)")
+	flag.IntVar(&config.maxWordLen, "max-word-len", defaults.maxWordLen, "ignore words longer than this (0 is no limit)")
+	flag.IntVar(&config.makeSuggestions, "suggest", defaults.makeSuggestions, "make suggestions for misspellings (0 - never, 1 - first instance, 2 - always)")
 	words := flag.String("misspellings", "", "file to write a dictionary of misspellings (.dic format)")
 	update := flag.Bool("update-dict", false, "update misspellings dictionary instead of creating a new one")
 	lang := flag.String("lang", "en_US", "language to use")
@@ -98,7 +112,7 @@ requiring the hint to be adjusted.
 		fmt.Fprintln(os.Stderr, "missing lang flag")
 		return invocationError
 	}
-	if *suggest < never || always < *suggest {
+	if config.makeSuggestions < never || always < config.makeSuggestions {
 		fmt.Fprintln(os.Stderr, "invalid suggest flag value")
 		return invocationError
 	}
@@ -201,18 +215,7 @@ requiring the hint to be adjusted.
 	}
 
 	keep := *words != ""
-	c := newChecker(spelling, keep, config{
-		show:            *show,
-		checkStrings:    *checkStrings,
-		ignoreUpper:     *ignoreUpper,
-		ignoreSingle:    *ignoreSingle,
-		ignoreNumbers:   *ignoreNumbers,
-		maskURLs:        *maskURLs,
-		camelSplit:      *camelSplit,
-		maxWordLen:      *maxWordLen,
-		minNakedHex:     *minNakedHex,
-		makeSuggestions: *suggest,
-	})
+	c := newChecker(spelling, keep, config)
 
 	for _, p := range pkgs {
 		c.fileset = p.Fset
