@@ -19,6 +19,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/kortschak/camel"
+	"github.com/kortschak/ct"
 	"github.com/kortschak/hunspell"
 	"golang.org/x/tools/go/packages"
 	"mvdan.cc/xurls/v2"
@@ -31,17 +32,9 @@ type checker struct {
 	spelling *hunspell.Spell
 	camel    camel.Splitter
 
-	show          bool // show the context of a misspelling.
-	ignoreUpper   bool // ignore words that are all uppercase.
-	ignoreSingle  bool // ignore words that are a single rune.
-	ignoreNumbers bool // ignore Go syntax number literals.
-	maskURLs      bool // mask URLs before checking.
-	camelSplit    bool // split words on camelCase when retrying.
-	maxWordLen    int  // ignore words longer than this.
-	minNakedHex   int  // ignore words at least this long if only hex digits.
+	config
 
-	makeSuggestions int // make suggestions for misspelled words.
-	suggested       map[string][]string
+	suggested map[string][]string
 
 	// warn is the decoration for incorrectly spelled words.
 	warn func(...interface{}) fmt.Formatter
@@ -55,6 +48,30 @@ type checker struct {
 	// found during the check. The words must have had any
 	// leading and trailing underscores removed.
 	misspelled map[string]bool
+}
+
+// newChecker returns a new spelling checker using the provided spelling
+// and configuration. If keep is true, misspelled word are retained for
+// later use.
+func newChecker(spelling *hunspell.Spell, keep bool, cfg config) *checker {
+	c := &checker{
+		spelling: spelling,
+		config:   cfg,
+		camel:    camel.NewSplitter([]string{"\\"}),
+		warn:     (ct.Italic | ct.Fg(ct.BoldRed)).Paint,
+	}
+	if c.show {
+		c.suggest = (ct.Italic | ct.Fg(ct.BoldGreen)).Paint
+	} else {
+		c.suggest = ct.Mode(0).Paint
+	}
+	if keep {
+		c.misspelled = make(map[string]bool)
+	}
+	if c.makeSuggestions != never {
+		c.suggested = make(map[string][]string)
+	}
+	return c
 }
 
 // check checks the provided text and outputs information about any misspellings
