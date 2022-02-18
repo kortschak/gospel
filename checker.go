@@ -58,7 +58,7 @@ func newChecker(spelling *hunspell.Spell, keep bool, cfg config) *checker {
 		camel:    camel.NewSplitter([]string{"\\"}),
 		warn:     (ct.Italic | ct.Fg(ct.BoldRed)).Paint,
 	}
-	if c.show {
+	if c.Show {
 		c.suggest = (ct.Italic | ct.Fg(ct.BoldGreen)).Paint
 	} else {
 		c.suggest = ct.Mode(0).Paint
@@ -66,7 +66,7 @@ func newChecker(spelling *hunspell.Spell, keep bool, cfg config) *checker {
 	if keep {
 		c.misspelled = make(map[string]bool)
 	}
-	if c.makeSuggestions != never {
+	if c.MakeSuggestions != never {
 		c.suggested = make(map[string][]string)
 	}
 	return c
@@ -108,11 +108,11 @@ func (c *checker) check(text string, pos token.Pos, where string) {
 		if !seen[word] {
 			fmt.Printf("%v: %q is misspelled in %s", c.fileset.Position(pos), word, where)
 
-			if c.makeSuggestions == always || (c.makeSuggestions == once && c.suggested[word] == nil) {
+			if c.MakeSuggestions == always || (c.MakeSuggestions == once && c.suggested[word] == nil) {
 				suggestions, ok := c.suggested[word]
 				if !ok {
 					suggestions = c.spelling.Suggest(word)
-					if c.makeSuggestions == always {
+					if c.MakeSuggestions == always {
 						// Cache suggestions.
 						c.suggested[word] = suggestions
 					} else {
@@ -134,7 +134,7 @@ func (c *checker) check(text string, pos token.Pos, where string) {
 			fmt.Println()
 			seen[word] = true
 		}
-		if c.show {
+		if c.Show {
 			if w.current.pos != lastPos {
 				args = append(args, text[lastPos:w.current.pos])
 			}
@@ -160,7 +160,7 @@ var urls = xurls.Strict()
 // textReader returns an io.Reader containing the provided text conditioned
 // according to the configuration.
 func (c *checker) textReader(text string) io.Reader {
-	if c.maskURLs {
+	if c.MaskURLs {
 		masked := urls.ReplaceAllStringFunc(text, func(s string) string {
 			return strings.Repeat(" ", len(s))
 		})
@@ -175,22 +175,22 @@ var empty = []string{}
 
 // isCorrect performs the word correctness checks for checker.
 func (c *checker) isCorrect(word string, isRetry bool) bool {
-	if c.maxWordLen > 0 && len(word) > c.maxWordLen {
+	if c.MaxWordLen > 0 && len(word) > c.MaxWordLen {
 		return true
 	}
-	if c.ignoreUpper && allUpper(word) {
+	if c.IgnoreUpper && allUpper(word) {
 		return true
 	}
 	if c.ignoreSingle && utf8.RuneCountInString(word) == 1 {
 		return true
 	}
-	if c.minNakedHex != 0 && len(word) >= c.minNakedHex && isHex(word) {
+	if c.MinNakedHex != 0 && len(word) >= c.MinNakedHex && isHex(word) {
 		return true
 	}
 	if isHexRune(word) {
 		return true
 	}
-	if c.ignoreNumbers && isNumber(word) {
+	if c.IgnoreNumbers && isNumber(word) {
 		return true
 	}
 	if c.spelling.IsCorrect(word) {
@@ -206,7 +206,7 @@ func (c *checker) isCorrect(word string, isRetry bool) bool {
 		return false
 	}
 	var fragments []string
-	if c.camelSplit {
+	if c.CamelSplit {
 		// TODO(kortschak): Allow user-configurable
 		// known words for camel case splitting.
 		fragments = c.camel.Split(word)
