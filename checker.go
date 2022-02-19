@@ -12,8 +12,10 @@ import (
 	"go/token"
 	"go/types"
 	"io"
+	"math"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"unicode"
 	"unicode/utf8"
@@ -252,9 +254,47 @@ func (c *checker) caseFoldMatch(word string) bool {
 // Visit walks the AST performing spell checking on any string literals.
 func (c *checker) Visit(n ast.Node) ast.Visitor {
 	if n, ok := n.(*ast.BasicLit); ok && n.Kind == token.STRING {
+		isDoubleQuoted := n.Value[0] == '"'
+		text := n.Value
+		if isDoubleQuoted {
+			var err error
+			text, err = strconv.Unquote(text)
+			if err != nil {
+				// This should never happen.
+				isDoubleQuoted = false
+				text = n.Value
+			}
+		}
+		if c.unexpectedEntropy(text, isDoubleQuoted) {
+			return c
+		}
 		c.check(n.Value, n.Pos(), "string")
 	}
 	return c
+}
+
+// unexpectedEntropy returns whether the text falls outside the expected
+// ranges for text.
+func (c *checker) unexpectedEntropy(text string, print bool) bool {
+	if !c.EntropyFiler.Filter || len(text) < c.EntropyFiler.MinLenFiltered {
+		return false
+	}
+	e := entropy(text, print)
+	low := expectedEntropy(len(text), c.EntropyFiler.Accept.Low)
+	high := expectedEntropy(len(text), c.EntropyFiler.Accept.High)
+	return e < low || high < e
+}
+
+// expectedEntropy returns the expected entropy for a sequence of n letters
+// uniformly chosen from an alphabet of s letters.
+func expectedEntropy(n, s int) float64 {
+	if n > s {
+		n = s
+	}
+	if n < 2 {
+		return 0
+	}
+	return -math.Log2(1 / float64(n))
 }
 
 // addIdentifiers adds identifier labels to the spelling dictionary.
@@ -389,4 +429,38 @@ func join(args []interface{}) string {
 		fmt.Fprint(&buf, a)
 	}
 	return buf.String()
+}
+
+// entropy returns the entropy of the provided text in bits. If
+// print is true, non-printable characters are grouped into a single
+// class.
+func entropy(text string, print bool) float64 {
+	if text == "" {
+		return 0
+	}
+
+	var counts [256]float64
+	for _, b := range []byte(text) {
+		if print && !unicode.IsPrint(rune(b)) {
+			continue
+		}
+		counts[b]++
+	}
+	n := len(text)
+
+	// e = -∑i=1..k((p_i)*log(p_i))
+	var e float64
+	for _, cnt := range counts {
+		if cnt == 0 {
+			// Ignore zero counts.
+			continue
+		}
+		p := cnt / float64(n)
+		e += p * math.Log2(p)
+	}
+	if e == 0 {
+		// Don't negate zero.
+		return 0
+	}
+	return -e
 }

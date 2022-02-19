@@ -1,4 +1,4 @@
-gospel -show=false -check-strings -max-word-len=16
+gospel -show=false -check-strings -max-word-len=20 -entropy-filter
 ! stdout .
 ! stderr .
 
@@ -86,10 +86,3 @@ var properties = [MaxLatin1 + 1]uint8{
 	0x89: pC,       // '\u0089'
 	0xAD: 0,        // '\u00ad'
 }
--- .words --
-5
-0e
-ux
-x0e
-x15
-xac

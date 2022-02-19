@@ -20,3 +20,10 @@ camel = true
 max_word_len = 30
 min_naked_hex = 8
 suggest = 0
+
+[entropy_filter]
+  filter = false
+  min_len_filtered = 16
+  [entropy_filter.accept]
+    low = 14
+    high = 20
