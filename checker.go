@@ -24,7 +24,7 @@ import (
 	"mvdan.cc/xurls/v2"
 )
 
-// checker implement an AST-walking spell checker.
+// checker implements an AST-walking spell checker.
 type checker struct {
 	fileset *token.FileSet
 
