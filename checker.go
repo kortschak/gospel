@@ -12,6 +12,8 @@ import (
 	"go/token"
 	"go/types"
 	"io"
+	"os"
+	"path/filepath"
 	"strings"
 	"unicode"
 	"unicode/utf8"
@@ -89,7 +91,8 @@ func (c *checker) check(text string, pos token.Pos, where string) {
 			continue
 		}
 		if !seen[word] {
-			fmt.Printf("%v: %q is misspelled in %s", c.fileset.Position(pos), word, where)
+			p := c.fileset.Position(pos)
+			fmt.Printf("%v:%d:%d: %q is misspelled in %s", rel(p.Filename), p.Line, p.Column, word, where)
 
 			if c.makeSuggestions == always || (c.makeSuggestions == once && c.suggested[word] == nil) {
 				suggestions, ok := c.suggested[word]
@@ -135,6 +138,19 @@ func (c *checker) check(text string, pos token.Pos, where string) {
 		}
 		fmt.Printf("\t%s\n", strings.Join(lines, "\n\t"))
 	}
+}
+
+// rel returns the wd-relative path for the input if possible.
+func rel(path string) string {
+	wd, err := os.Getwd()
+	if err != nil {
+		return path
+	}
+	rel, err := filepath.Rel(wd, path)
+	if err != nil {
+		return path
+	}
+	return rel
 }
 
 // urls is used for masking URLs in check.
