@@ -45,16 +45,17 @@ const (
 
 // config holds application-wide user configuration values.
 type config struct {
-	Show            bool `toml:"show"`           // show the context of a misspelling.
-	CheckStrings    bool `toml:"check_strings"`  // check string literals as well as comments.
-	IgnoreUpper     bool `toml:"ignore_upper"`   // ignore words that are all uppercase.
-	ignoreSingle    bool `toml:"ignore_single"`  // ignore words that are a single rune.
-	IgnoreNumbers   bool `toml:"ignore_numbers"` // ignore Go syntax number literals.
-	MaskURLs        bool `toml:"mask_urls"`      // mask URLs before checking.
-	CamelSplit      bool `toml:"camel"`          // split words on camelCase when retrying.
-	MaxWordLen      int  `toml:"max_word_len"`   // ignore words longer than this.
-	MinNakedHex     int  `toml:"min_naked_hex"`  // ignore words at least this long if only hex digits.
-	MakeSuggestions int  `toml:"suggest"`        // make suggestions for misspelled words.
+	Show            bool          `toml:"show"`           // show the context of a misspelling.
+	CheckStrings    bool          `toml:"check_strings"`  // check string literals as well as comments.
+	IgnoreUpper     bool          `toml:"ignore_upper"`   // ignore words that are all uppercase.
+	ignoreSingle    bool          `toml:"ignore_single"`  // ignore words that are a single rune.
+	IgnoreNumbers   bool          `toml:"ignore_numbers"` // ignore Go syntax number literals.
+	MaskURLs        bool          `toml:"mask_urls"`      // mask URLs before checking.
+	CamelSplit      bool          `toml:"camel"`          // split words on camelCase when retrying.
+	MaxWordLen      int           `toml:"max_word_len"`   // ignore words longer than this.
+	MinNakedHex     int           `toml:"min_naked_hex"`  // ignore words at least this long if only hex digits.
+	MakeSuggestions int           `toml:"suggest"`        // make suggestions for misspelled words.
+	EntropyFiler    entropyFilter `toml:"entropy_filter"` // specify entropy filter behaviour (experimental).
 }
 
 var defaults = config{
@@ -68,6 +69,33 @@ var defaults = config{
 	MaxWordLen:      40,
 	MinNakedHex:     8,
 	MakeSuggestions: never,
+
+	// Experimental options.
+	EntropyFiler: entropyFilter{
+		Filter:         false,
+		MinLenFiltered: 16,
+		Accept:         intRange{Low: 14, High: 20},
+	},
+}
+
+// entropyFilter specifies behaviour of the entropy filter.
+type entropyFilter struct {
+	Filter bool `toml:"filter"`
+
+	// MinLenFiltered is the shorted text
+	// length that will be considered by
+	// the entropy filter.
+	MinLenFiltered int `toml:"min_len_filtered"`
+
+	// Accept is the range of effective
+	// alphabet sizes that are acceptable.
+	Accept intRange `toml:"accept"`
+}
+
+// intRange is an int interval.
+type intRange struct {
+	Low  int `toml:"low"`
+	High int `toml:"high"`
 }
 
 func gospel() (status int) {
@@ -84,6 +112,7 @@ func gospel() (status int) {
 	flag.BoolVar(&config.IgnoreNumbers, "ignore-numbers", config.IgnoreNumbers, "ignore Go syntax number literals")
 	flag.BoolVar(&config.MaskURLs, "mask-urls", config.MaskURLs, "mask URLs in text")
 	flag.BoolVar(&config.CamelSplit, "camel", config.CamelSplit, "split words on camel case")
+	flag.BoolVar(&config.EntropyFiler.Filter, "entropy-filter", config.EntropyFiler.Filter, "filter strings by entropy")
 	flag.IntVar(&config.MinNakedHex, "min-naked-hex", config.MinNakedHex, "length to recognize hex-digit words as number (0 is never ignore)")
 	flag.IntVar(&config.MaxWordLen, "max-word-len", config.MaxWordLen, "ignore words longer than this (0 is no limit)")
 	flag.IntVar(&config.MakeSuggestions, "suggest", config.MakeSuggestions, "make suggestions for misspellings (0 - never, 1 - first instance, 2 - always)")
@@ -115,6 +144,10 @@ If a .gospel.conf file exists in the root of the current module and the config
 flag is true (default) it will be used to populate selected flag defaults:
 show, check-strings, ignore-upper, ignore-single, ignore-numbers, mask-urls,
 camel, min-naked-hex, max-word-len and suggest.
+
+String literals can be filtered on the basis of entropy to exclude unexpectedly
+high or low complexity text from spell checking. This is experimental, and may
+change in behaviour in future versions.
 
 `, os.Args[0])
 		flag.PrintDefaults()
