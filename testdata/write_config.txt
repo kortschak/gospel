@@ -11,6 +11,8 @@ package main
 func main() {
 }
 -- gospel.conf --
+ignore_idents = true
+lang = "en_US"
 show = true
 check_strings = false
 ignore_upper = true

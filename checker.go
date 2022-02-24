@@ -31,8 +31,8 @@ import (
 type checker struct {
 	fileset *token.FileSet
 
-	spelling *hunspell.Spell
-	camel    camel.Splitter
+	dictionary *dictionary
+	camel      camel.Splitter
 
 	config
 
@@ -42,33 +42,21 @@ type checker struct {
 	warn func(...interface{}) fmt.Formatter
 	// suggest is the decoration for suggested words.
 	suggest func(...interface{}) fmt.Formatter
-
-	// misspellings is the number of misspellings found.
-	misspellings int
-
-	// misspelled is the complete list of misspelled words
-	// found during the check. The words must have had any
-	// leading and trailing underscores removed.
-	misspelled map[string]bool
 }
 
 // newChecker returns a new spelling checker using the provided spelling
-// and configuration. If keep is true, misspelled word are retained for
-// later use.
-func newChecker(spelling *hunspell.Spell, keep bool, cfg config) *checker {
+// and configuration.
+func newChecker(d *dictionary, cfg config) *checker {
 	c := &checker{
-		spelling: spelling,
-		config:   cfg,
-		camel:    camel.NewSplitter([]string{"\\"}),
-		warn:     (ct.Italic | ct.Fg(ct.BoldRed)).Paint,
+		dictionary: d,
+		config:     cfg,
+		camel:      camel.NewSplitter([]string{"\\"}),
+		warn:       (ct.Italic | ct.Fg(ct.BoldRed)).Paint,
 	}
 	if c.Show {
 		c.suggest = (ct.Italic | ct.Fg(ct.BoldGreen)).Paint
 	} else {
 		c.suggest = ct.Mode(0).Paint
-	}
-	if keep {
-		c.misspelled = make(map[string]bool)
 	}
 	if c.MakeSuggestions != never {
 		c.suggested = make(map[string][]string)
@@ -116,7 +104,7 @@ func (c *checker) check(text string, pos token.Pos, where string) {
 			if c.MakeSuggestions == always || (c.MakeSuggestions == once && c.suggested[word] == nil) {
 				suggestions, ok := c.suggested[word]
 				if !ok {
-					suggestions = c.spelling.Suggest(word)
+					suggestions = c.dictionary.Suggest(word)
 					if c.MakeSuggestions == always {
 						// Cache suggestions.
 						c.suggested[word] = suggestions
@@ -193,6 +181,8 @@ var empty = []string{}
 
 // isCorrect performs the word correctness checks for checker.
 func (c *checker) isCorrect(word string, isRetry bool) bool {
+	// TODO(kortschak): Make this a slice of heuristics
+	// to iterate over, rather than this.
 	if c.MaxWordLen > 0 && len(word) > c.MaxWordLen {
 		return true
 	}
@@ -211,16 +201,13 @@ func (c *checker) isCorrect(word string, isRetry bool) bool {
 	if c.IgnoreNumbers && isNumber(word) {
 		return true
 	}
-	if c.spelling.IsCorrect(word) {
+	if c.dictionary.IsCorrect(word) {
 		return true
 	}
 	if isRetry || c.caseFoldMatch(word) {
 		// TODO(kortschak): Consider not adding case-fold
 		// matches to the misspelled map.
-		c.misspellings++
-		if c.misspelled != nil {
-			c.misspelled[word] = true
-		}
+		c.dictionary.noteMisspelling(word)
 		return false
 	}
 	var fragments []string
@@ -243,7 +230,7 @@ func (c *checker) isCorrect(word string, isRetry bool) bool {
 // is an exact match under case folding. This checks for the common error
 // of failing to adjust export visibility of labels in comments.
 func (c *checker) caseFoldMatch(word string) bool {
-	for _, suggest := range c.spelling.Suggest(word) {
+	for _, suggest := range c.dictionary.Suggest(word) {
 		if strings.EqualFold(suggest, word) {
 			return true
 		}
