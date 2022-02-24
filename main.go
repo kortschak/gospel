@@ -9,7 +9,6 @@
 package main
 
 import (
-	"bufio"
 	"errors"
 	"flag"
 	"fmt"
@@ -17,11 +16,9 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
-	"sort"
 	"strings"
 
 	"github.com/BurntSushi/toml"
-	"github.com/kortschak/hunspell"
 	"golang.org/x/tools/go/packages"
 )
 
@@ -45,6 +42,8 @@ const (
 
 // config holds application-wide user configuration values.
 type config struct {
+	IgnoreIdents    bool          `toml:"ignore_idents"`  // ignore words matching identifiers.
+	Lang            string        `toml:"lang"`           // language to use.
 	Show            bool          `toml:"show"`           // show the context of a misspelling.
 	CheckStrings    bool          `toml:"check_strings"`  // check string literals as well as comments.
 	IgnoreUpper     bool          `toml:"ignore_upper"`   // ignore words that are all uppercase.
@@ -56,9 +55,20 @@ type config struct {
 	MinNakedHex     int           `toml:"min_naked_hex"`  // ignore words at least this long if only hex digits.
 	MakeSuggestions int           `toml:"suggest"`        // make suggestions for misspelled words.
 	EntropyFiler    entropyFilter `toml:"entropy_filter"` // specify entropy filter behaviour (experimental).
+
+	words  string
+	paths  string
+	update bool
 }
 
 var defaults = config{
+	// Dictionary options.
+	IgnoreIdents: true,
+	Lang:         "en_US",
+
+	paths: path,
+
+	// Checker options.
 	Show:            true,
 	CheckStrings:    false,
 	IgnoreUpper:     true,
@@ -105,6 +115,9 @@ func gospel() (status int) {
 		return status
 	}
 
+	// Persisted options.
+	flag.BoolVar(&config.IgnoreIdents, "ignore-idents", config.IgnoreIdents, "ignore words matching identifiers")
+	flag.StringVar(&config.Lang, "lang", config.Lang, "language to use")
 	flag.BoolVar(&config.Show, "show", config.Show, "print comment or string with misspellings")
 	flag.BoolVar(&config.CheckStrings, "check-strings", config.CheckStrings, "check string literals")
 	flag.BoolVar(&config.IgnoreUpper, "ignore-upper", config.IgnoreUpper, "ignore all-uppercase words")
@@ -116,11 +129,12 @@ func gospel() (status int) {
 	flag.IntVar(&config.MinNakedHex, "min-naked-hex", config.MinNakedHex, "length to recognize hex-digit words as number (0 is never ignore)")
 	flag.IntVar(&config.MaxWordLen, "max-word-len", config.MaxWordLen, "ignore words longer than this (0 is no limit)")
 	flag.IntVar(&config.MakeSuggestions, "suggest", config.MakeSuggestions, "make suggestions for misspellings (0 - never, 1 - first instance, 2 - always)")
-	ignoreIdents := flag.Bool("ignore-idents", true, "ignore words matching identifiers")
-	lang := flag.String("lang", "en_US", "language to use")
-	dicts := flag.String("dict-paths", path, "directory list containing hunspell dictionaries")
-	words := flag.String("misspellings", "", "file to write a dictionary of misspellings (.dic format)")
-	update := flag.Bool("update-dict", false, "update misspellings dictionary instead of creating a new one")
+
+	// Non-persisted config options.
+	flag.StringVar(&config.paths, "dict-paths", config.paths, "directory list containing hunspell dictionaries")
+	flag.StringVar(&config.words, "misspellings", "", "file to write a dictionary of misspellings (.dic format)")
+	flag.BoolVar(&config.update, "update-dict", false, "update misspellings dictionary instead of creating a new one")
+
 	writeConf := flag.Bool("write-config", false, "write config file based on flags and existing config to stdout and exit")
 	flag.Bool("config", true, "use config file") // Included for documentation.
 	flag.Usage = func() {
@@ -154,7 +168,7 @@ change in behaviour in future versions.
 	}
 	flag.Parse()
 
-	if *lang == "" {
+	if config.Lang == "" {
 		fmt.Fprintln(os.Stderr, "missing lang flag")
 		return invocationError
 	}
@@ -166,26 +180,6 @@ change in behaviour in future versions.
 	if *writeConf {
 		toml.NewEncoder(os.Stdout).Encode(config)
 		return success
-	}
-
-	var spelling *hunspell.Spell
-	for _, p := range filepath.SplitList(*dicts) {
-		if strings.HasPrefix(p, "~"+string(filepath.Separator)) {
-			dir, err := os.UserHomeDir()
-			if err != nil {
-				fmt.Fprintf(os.Stderr, "could not expand tilde: %v\n", err)
-				return internalError
-			}
-			p = filepath.Join(dir, p[2:])
-		}
-		spelling, err = hunspell.NewSpell(p, *lang)
-		if err == nil {
-			break
-		}
-	}
-	if spelling == nil {
-		fmt.Fprintf(os.Stderr, "no %s dictionary found in: %v\n", *lang, *dicts)
-		return internalError
 	}
 
 	cfg := &packages.Config{
@@ -206,66 +200,13 @@ change in behaviour in future versions.
 		return internalError
 	}
 
-	// Load known words as a dictionary. This requires a write to
-	// disk since hunspell does not allow dictionaries to be loaded
-	// from memory, and affix rules can't be provided directly.
-	kw, err := os.CreateTemp("", "gospel")
+	d, err := newDictionary(pkgs, config)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "failed to create known words dictionary: %v", err)
+		fmt.Fprintln(os.Stderr, err)
 		return internalError
-	} else {
-		defer os.Remove(kw.Name())
-		fmt.Fprintln(kw, len(knownWords))
-		for _, w := range knownWords {
-			fmt.Fprintln(kw, w)
-		}
-		err := spelling.AddDict(kw.Name())
-		if err != nil {
-			fmt.Fprintln(os.Stderr, err)
-			return internalError
-		}
-	}
-	// Load any dictionaries that exist in well known locations
-	// at module roots. We do not do this when we are outputting
-	// a misspelling list since the list will be incomplete unless
-	// it is appended to the existing list, unless we are making
-	// and updated dictionary when we will merge them.
-	var roots map[string]bool
-	if *words == "" || *update {
-		roots = make(map[string]bool)
-		for _, p := range pkgs {
-			if p.Module == nil {
-				continue
-			}
-			roots[p.Module.Dir] = true
-		}
-		for r := range roots {
-			err := spelling.AddDict(filepath.Join(r, ".words"))
-			if _, ok := err.(*os.PathError); !ok && err != nil {
-				fmt.Fprintln(os.Stderr, err)
-				return internalError
-			}
-		}
 	}
 
-	if *ignoreIdents {
-		err = addIdentifiers(spelling, pkgs, make(map[string]bool))
-		if err != nil {
-			fmt.Fprintln(os.Stderr, err)
-			return internalError
-		}
-	}
-
-	// Add authors identifiers gleaned from NOTEs.
-	for _, p := range pkgs {
-		for _, f := range p.Syntax {
-			addNoteAuthors(spelling, f.Comments)
-		}
-	}
-
-	keep := *words != ""
-	c := newChecker(spelling, keep, config)
-
+	c := newChecker(d, config)
 	for _, p := range pkgs {
 		c.fileset = p.Fset
 		for _, f := range p.Syntax {
@@ -283,49 +224,14 @@ change in behaviour in future versions.
 			}
 		}
 	}
-	if c.misspellings != 0 {
+	if d.misspellings != 0 {
 		status |= spellingError
 	}
 
-	// Write out a dictionary of the misspelled words.
-	// The hunspell .dic format includes a count hint
-	// at the top of the file so add that as well.
-	if keep {
-		if *update {
-			// Carry over words from the already existing dictionaries.
-			for r := range roots {
-				old, err := os.Open(filepath.Join(r, ".words"))
-				if err == nil {
-					sc := bufio.NewScanner(old)
-					for i := 0; sc.Scan(); i++ {
-						if i == 0 {
-							continue
-						}
-						c.misspelled[sc.Text()] = true
-					}
-					old.Close()
-				} else if !errors.Is(err, fs.ErrNotExist) {
-					fmt.Fprintf(os.Stderr, "failed to open .words file: %v", err)
-					return internalError
-				}
-			}
-		}
-
-		f, err := os.Create(*words)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "failed to open misspellings file: %v", err)
-			return internalError
-		}
-		defer f.Close()
-		dict := make([]string, 0, len(c.misspelled))
-		for m := range c.misspelled {
-			dict = append(dict, m)
-		}
-		sort.Strings(dict)
-		fmt.Fprintln(f, len(dict))
-		for _, m := range dict {
-			fmt.Fprintln(f, m)
-		}
+	err = d.writeMisspellings()
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		status |= internalError
 	}
 
 	return status

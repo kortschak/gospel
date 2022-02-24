@@ -2,3 +2,11 @@
 ! gospel -lang='en_FR'
 ! stdout .
 stderr 'no en_FR dictionary found in:'
+
+-- go.mod --
+module dummy
+-- main.go --
+package main
+
+func main() {
+}
