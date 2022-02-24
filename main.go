@@ -30,7 +30,7 @@ func main() { os.Exit(gospel()) }
 // Exit status codes.
 const (
 	success       = 0
-	internalError = 1 << iota
+	internalError = 1 << (iota - 1)
 	invocationError
 	directiveError // Currently unused. This will be for linting directives.
 	spellingError
@@ -174,7 +174,7 @@ change in behaviour in future versions.
 			dir, err := os.UserHomeDir()
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "could not expand tilde: %v\n", err)
-				return 1
+				return internalError
 			}
 			p = filepath.Join(dir, p[2:])
 		}
