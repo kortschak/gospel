@@ -1,0 +1,20 @@
+# Show regexp can ignore misspelled words.
+! gospel -show=false -config=false
+stdout 'main.go:3:1: "Speeling" is misspelled in comment'
+stdout 'main.go:3:1: "mistaek" is misspelled in comment'
+! stderr .
+
+gospel -show=false
+! stdout .
+! stderr .
+
+-- go.mod --
+module dummy
+-- main.go --
+package main
+
+// Speeling mistaek.
+func main() {
+}
+-- .gospel.conf --
+patterns = ["^S.e{2}.{4}$", "sta"]

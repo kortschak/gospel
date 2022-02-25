@@ -5,8 +5,10 @@
 package main
 
 import (
+	"fmt"
 	"go/scanner"
 	"go/token"
+	"regexp"
 	"strconv"
 	"strings"
 	"unicode"
@@ -121,9 +123,9 @@ func (isHexRune) isAcceptable(word string, _ bool) bool {
 // isUnit is a heuristic that accepts quantities with units as valid words.
 type isUnit struct{}
 
-// isUnit returns whether word is a quantity with a unit. Naked units are
-// handled by hunspell. If partial is true, word is not a valid unit as
-// it would have been directly adjacent to other characters.
+// isAcceptable returns whether word is a quantity with a unit. Naked
+// units are handled by hunspell. If partial is true, word is not a valid
+// unit as it would have been directly adjacent to other characters.
 func (isUnit) isAcceptable(word string, partial bool) bool {
 	if partial {
 		// Don't consider camel split words for unit heuristic.
@@ -156,6 +158,39 @@ var knownUnits = []string{
 	"Å", "nm", "µm", "mm", "cm", "m", "km",
 	"ns", "µs", "us", "ms", "s", "min", "hr",
 	"Hz",
+}
+
+// patterns is a heuristic based on user-provided regular expressions.
+type patterns []*regexp.Regexp
+
+// newPatterns returns a new patterns compiled from the provided
+// expressions.
+func newPatterns(exprs []string) (patterns, error) {
+	p := make([]*regexp.Regexp, len(exprs))
+	var err error
+	for i, re := range exprs {
+		p[i], err = regexp.Compile(re)
+		if err != nil {
+			return nil, fmt.Errorf("could not construct pattern heuristic: %w", err)
+		}
+	}
+	return p, nil
+}
+
+// isAcceptable returns whether word matches any of the regular expressions
+// in the patterns heuristic. If partial is true no regexp is tried and
+// false is returned. If partial matches are required, they should be
+// encoded into the patterns.
+func (h patterns) isAcceptable(word string, partial bool) bool {
+	if partial {
+		return false
+	}
+	for _, p := range h {
+		if p.MatchString(word) {
+			return true
+		}
+	}
+	return false
 }
 
 // isHex returns whether all bytes of s are hex digits.

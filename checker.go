@@ -46,7 +46,7 @@ type checker struct {
 
 // newChecker returns a new spelling checker using the provided spelling
 // and configuration.
-func newChecker(d *dictionary, cfg config) *checker {
+func newChecker(d *dictionary, cfg config) (*checker, error) {
 	c := &checker{
 		dictionary: d,
 		config:     cfg,
@@ -78,8 +78,15 @@ func newChecker(d *dictionary, cfg config) *checker {
 	if c.IgnoreNumbers {
 		c.heuristics = append(c.heuristics, &isNumber{})
 	}
+	if len(c.Patterns) != 0 {
+		p, err := newPatterns(c.Patterns)
+		if err != nil {
+			return nil, err
+		}
+		c.heuristics = append(c.heuristics, p)
+	}
 
-	return c
+	return c, nil
 }
 
 // check checks the provided text and outputs information about any misspellings
