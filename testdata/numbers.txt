@@ -1,4 +1,4 @@
-# Show single-letter misspelling is ignored when requested.
+# Show numbers are ignored when requested.
 
 ! gospel -ignore-numbers=false -show=false
 stdout 'main.go:7:1: "1e43" is misspelled in comment'
