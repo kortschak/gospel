@@ -53,6 +53,7 @@ type config struct {
 	CamelSplit      bool          `toml:"camel"`          // split words on camelCase when retrying.
 	MaxWordLen      int           `toml:"max_word_len"`   // ignore words longer than this.
 	MinNakedHex     int           `toml:"min_naked_hex"`  // ignore words at least this long if only hex digits.
+	Patterns        []string      `toml:"patterns"`       // acceptable words defined by regexp.
 	MakeSuggestions int           `toml:"suggest"`        // make suggestions for misspelled words.
 	EntropyFiler    entropyFilter `toml:"entropy_filter"` // specify entropy filter behaviour (experimental).
 
@@ -206,7 +207,11 @@ change in behaviour in future versions.
 		return internalError
 	}
 
-	c := newChecker(d, config)
+	c, err := newChecker(d, config)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return invocationError
+	}
 	for _, p := range pkgs {
 		c.fileset = p.Fset
 		for _, f := range p.Syntax {
