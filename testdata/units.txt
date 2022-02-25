@@ -1,0 +1,35 @@
+# Show various units are accepted.
+
+gospel
+! stdout .
+! stderr .
+
+-- go.mod --
+module dummy
+-- main.go --
+package main
+
+// 2km is 2 of the unit km
+// 2m is 2 of the unit m
+// 2mm is 2 of the unit mm
+// 2nm is 2 of the unit nm
+// 2nm is 2 of the unit nm
+// 2min is 2 of the unit min
+// 2hr is 2 of the unit hr
+// 2ms is 2 of the unit ms
+// 2µs is 2 of the unit µs
+// 2ns is 2 of the unit ns
+// 2kb is 2 of the unit kb
+// 2kB is 2 of the unit kB
+// 2Gb is 2 of the unit Gb
+// 2GB is 2 of the unit GB
+// 2Tb is 2 of the unit Tb
+// 2TB is 2 of the unit TB
+// 2kib is 2 of the unit kib
+// 2kiB is 2 of the unit kiB
+// 2Gib is 2 of the unit Gib
+// 2GiB is 2 of the unit GiB
+// 2Tib is 2 of the unit Tib
+// 2TiB is 2 of the unit TiB
+func main() {
+}

@@ -201,6 +201,9 @@ func (c *checker) isCorrect(word string, isRetry bool) bool {
 	if c.IgnoreNumbers && isNumber(word) {
 		return true
 	}
+	if isUnit(word) {
+		return true
+	}
 	if c.dictionary.IsCorrect(word) {
 		return true
 	}

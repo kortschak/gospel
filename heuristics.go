@@ -7,6 +7,7 @@ package main
 import (
 	"go/scanner"
 	"go/token"
+	"strconv"
 	"strings"
 	"unicode"
 )
@@ -76,4 +77,41 @@ func isHexRune(word string) bool {
 		}
 		return true
 	}
+}
+
+// isUnit returns whether word is a quantity with a unit. Naked units are
+// handled by hunspell.
+func isUnit(word string) bool {
+	if word == "0x" {
+		// Special-case 0x as it is probably a hex prefix rather
+		// than a factor of zero. So handle it in that context.
+		return false
+	}
+	for _, u := range knownUnits {
+		if strings.HasSuffix(word, u) {
+			_, err := strconv.ParseFloat(strings.TrimSuffix(word, u), 64)
+			if err == nil {
+				// We have to check all of them until we get an
+				// acceptance unless we guarantee that no suffix
+				// of a unit exists that is also a unit later in
+				// the list. If performance becomes an issue do
+				// this.
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// knownUnits is the set of units we check for. Add more as they are
+// identified as problems.
+var knownUnits = []string{
+	"k", "M", "x",
+	"Kb", "kb", "Mb", "Gb", "Tb",
+	"KB", "kB", "MB", "GB", "TB",
+	"Kib", "kib", "Mib", "Gib", "Tib",
+	"KiB", "kiB", "MiB", "GiB", "TiB",
+	"Å", "nm", "µm", "mm", "cm", "m", "km",
+	"ns", "µs", "us", "ms", "s", "min", "hr",
+	"Hz",
 }
