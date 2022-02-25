@@ -5,6 +5,7 @@
 package main
 
 import (
+	"bufio"
 	"go/ast"
 	"regexp"
 	"strings"
@@ -51,7 +52,12 @@ func readNote(spelling *hunspell.Spell, list []*ast.Comment) {
 	text := (&ast.CommentGroup{List: list}).Text()
 	if m := noteMarkerRx.FindStringSubmatchIndex(text); m != nil {
 		if strings.TrimSpace(text[m[1]:]) != "" {
-			spelling.Add(text[m[4]:m[5]])
+			sc := bufio.NewScanner(strings.NewReader(text[m[4]:m[5]]))
+			var w words // Use our word scanner to retain parity.
+			sc.Split(w.ScanWords)
+			for sc.Scan() {
+				spelling.Add(sc.Text())
+			}
 		}
 	}
 }
