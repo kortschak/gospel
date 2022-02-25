@@ -36,12 +36,19 @@ var knownWords = []string{
 	"string/MDRSZG", "byte/MS", "rune/MS",
 
 	// Units
-	"KiB/S", "MiB/S", "GiB/S", "TiB/S",
+	"Å/S", "nm/S", "µm/S", "mm/S", "cm/S", "m/S", "km/S",
+	"ns", "µs", "ms", "s", "min/S", "hr/S",
+	"Hz",
+	"Kb/S", "kb/S", "Mb/S", "Gb/S", "Tb/S",
+	"KB/S", "kB/S", "MB/S", "GB/S", "TB/S",
+	"Kib/S", "kib/S", "Mib/S", "Gib/S", "Tib/S",
+	"KiB/S", "kiB/S", "MiB/S", "GiB/S", "TiB/S",
 
-	// Architectures
-	"aarch", "aix", "amd", "amd64", "arm64", "darwin", "freebsd", "illumos", "ios",
-	"js", "linux", "mips", "mips64", "mips64le", "mipsle", "netbsd", "openbsd",
-	"ppc64", "ppc64le", "riscv64", "s390x", "solaris", "wasm", "windows",
+	// Architectures and operating systems
+	"aarch", "aix", "amd", "amd64", "arm64", "bsd", "darwin", "freebsd", "illumos",
+	"ios", "iOS", "js", "linux", "mips", "mips64", "mips64le", "mipsle", "netbsd",
+	"openbsd", "plan9", "ppc64", "ppc64le", "riscv64", "s390x", "solaris", "wasm",
+	"windows",
 
 	// Compiler comments
 	"c1",
@@ -120,6 +127,7 @@ var knownWords = []string{
 	"cryptographically",
 	"dataflow",
 	"datastructure/MS",
+	"deadcode",
 	"deallocate/SD",
 	"decrementing",
 	"decrypt/SD",
@@ -246,6 +254,7 @@ var knownWords = []string{
 	"proc/S",
 	"profiler/S",
 	"programmatically",
+	"pthread/S",
 	"quantization",
 	"quicksort",
 	"readme",
