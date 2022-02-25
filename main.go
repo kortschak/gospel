@@ -47,7 +47,7 @@ type config struct {
 	Show            bool          `toml:"show"`           // show the context of a misspelling.
 	CheckStrings    bool          `toml:"check_strings"`  // check string literals as well as comments.
 	IgnoreUpper     bool          `toml:"ignore_upper"`   // ignore words that are all uppercase.
-	ignoreSingle    bool          `toml:"ignore_single"`  // ignore words that are a single rune.
+	IgnoreSingle    bool          `toml:"ignore_single"`  // ignore words that are a single rune.
 	IgnoreNumbers   bool          `toml:"ignore_numbers"` // ignore Go syntax number literals.
 	MaskURLs        bool          `toml:"mask_urls"`      // mask URLs before checking.
 	CamelSplit      bool          `toml:"camel"`          // split words on camelCase when retrying.
@@ -72,7 +72,7 @@ var defaults = config{
 	Show:            true,
 	CheckStrings:    false,
 	IgnoreUpper:     true,
-	ignoreSingle:    true,
+	IgnoreSingle:    true,
 	IgnoreNumbers:   true,
 	MaskURLs:        true,
 	CamelSplit:      true,
@@ -121,7 +121,7 @@ func gospel() (status int) {
 	flag.BoolVar(&config.Show, "show", config.Show, "print comment or string with misspellings")
 	flag.BoolVar(&config.CheckStrings, "check-strings", config.CheckStrings, "check string literals")
 	flag.BoolVar(&config.IgnoreUpper, "ignore-upper", config.IgnoreUpper, "ignore all-uppercase words")
-	flag.BoolVar(&config.ignoreSingle, "ignore-single", config.ignoreSingle, "ignore single letter words")
+	flag.BoolVar(&config.IgnoreSingle, "ignore-single", config.IgnoreSingle, "ignore single letter words")
 	flag.BoolVar(&config.IgnoreNumbers, "ignore-numbers", config.IgnoreNumbers, "ignore Go syntax number literals")
 	flag.BoolVar(&config.MaskURLs, "mask-urls", config.MaskURLs, "mask URLs in text")
 	flag.BoolVar(&config.CamelSplit, "camel", config.CamelSplit, "split words on camel case")

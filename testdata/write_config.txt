@@ -16,6 +16,7 @@ lang = "en_US"
 show = true
 check_strings = false
 ignore_upper = true
+ignore_single = true
 ignore_numbers = true
 mask_urls = true
 camel = true

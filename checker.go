@@ -18,7 +18,6 @@ import (
 	"strconv"
 	"strings"
 	"unicode"
-	"unicode/utf8"
 
 	"github.com/kortschak/camel"
 	"github.com/kortschak/ct"
@@ -33,6 +32,7 @@ type checker struct {
 
 	dictionary *dictionary
 	camel      camel.Splitter
+	heuristics []heuristic
 
 	config
 
@@ -51,7 +51,13 @@ func newChecker(d *dictionary, cfg config) *checker {
 		dictionary: d,
 		config:     cfg,
 		camel:      camel.NewSplitter([]string{"\\"}),
-		warn:       (ct.Italic | ct.Fg(ct.BoldRed)).Paint,
+		heuristics: []heuristic{
+			wordLen{cfg.MaxWordLen},
+			isNakedHex{cfg.MinNakedHex},
+			isHexRune{},
+			isUnit{},
+		},
+		warn: (ct.Italic | ct.Fg(ct.BoldRed)).Paint,
 	}
 	if c.Show {
 		c.suggest = (ct.Italic | ct.Fg(ct.BoldGreen)).Paint
@@ -61,6 +67,18 @@ func newChecker(d *dictionary, cfg config) *checker {
 	if c.MakeSuggestions != never {
 		c.suggested = make(map[string][]string)
 	}
+
+	// Add optional heuristics.
+	if c.IgnoreUpper {
+		c.heuristics = append(c.heuristics, allUpper{})
+	}
+	if c.IgnoreSingle {
+		c.heuristics = append(c.heuristics, isSingle{})
+	}
+	if c.IgnoreNumbers {
+		c.heuristics = append(c.heuristics, &isNumber{})
+	}
+
 	return c
 }
 
@@ -180,34 +198,16 @@ func (c *checker) textReader(text string) io.Reader {
 var empty = []string{}
 
 // isCorrect performs the word correctness checks for checker.
-func (c *checker) isCorrect(word string, isRetry bool) bool {
-	// TODO(kortschak): Make this a slice of heuristics
-	// to iterate over, rather than this.
-	if c.MaxWordLen > 0 && len(word) > c.MaxWordLen {
-		return true
-	}
-	if c.IgnoreUpper && allUpper(word) {
-		return true
-	}
-	if c.ignoreSingle && utf8.RuneCountInString(word) == 1 {
-		return true
-	}
-	if c.MinNakedHex != 0 && len(word) >= c.MinNakedHex && isHex(word) {
-		return true
-	}
-	if isHexRune(word) {
-		return true
-	}
-	if c.IgnoreNumbers && isNumber(word) {
-		return true
-	}
-	if isUnit(word) {
-		return true
+func (c *checker) isCorrect(word string, partial bool) bool {
+	for _, h := range c.heuristics {
+		if h.isAcceptable(word, partial) {
+			return true
+		}
 	}
 	if c.dictionary.IsCorrect(word) {
 		return true
 	}
-	if isRetry || c.caseFoldMatch(word) {
+	if partial || c.caseFoldMatch(word) {
 		// TODO(kortschak): Consider not adding case-fold
 		// matches to the misspelled map.
 		c.dictionary.noteMisspelling(word)
