@@ -1,8 +1,8 @@
 # Show types are recognised in their plural.
 
 ! gospel -show=false
-! stdout 'main.go:3:1: "privatetypes" is misspelled in comment'
-stdout 'main.go:7:2: "privatevalues" is misspelled in comment'
+! stdout '"privatetypes" is misspelled in comment'
+stdout 'main.go:7:26: "privatevalues" is misspelled in comment'
 ! stderr .
 
 -- go.mod --

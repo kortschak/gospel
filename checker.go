@@ -32,6 +32,8 @@ type checker struct {
 
 	config
 
+	misspellings []misspelling
+
 	suggested map[string][]string
 
 	// warn is the decoration for incorrectly spelled words.
@@ -87,16 +89,12 @@ func newChecker(d *dictionary, cfg config) (*checker, error) {
 
 // check checks the provided text and outputs information about any misspellings
 // in the text.
-func (c *checker) check(text string, pos token.Pos, where string) {
+func (c *checker) check(text string, node ast.Node, where string) (ok bool) {
 	sc := bufio.NewScanner(c.textReader(text))
 	w := words{}
 	sc.Split(w.ScanWords)
 
-	var (
-		args    []interface{}
-		lastPos int
-	)
-	seen := make(map[string]bool)
+	var words []misspelled
 	for sc.Scan() {
 		word := sc.Text()
 
@@ -118,54 +116,18 @@ func (c *checker) check(text string, pos token.Pos, where string) {
 		if c.isCorrect(stripUnderscores(word), false) {
 			continue
 		}
-		if !seen[word] {
-			p := c.fileset.Position(pos)
-			fmt.Printf("%v:%d:%d: %q is misspelled in %s", rel(p.Filename), p.Line, p.Column, word, where)
-
-			if c.MakeSuggestions == always || (c.MakeSuggestions == once && c.suggested[word] == nil) {
-				suggestions, ok := c.suggested[word]
-				if !ok {
-					suggestions = c.dictionary.Suggest(word)
-					if c.MakeSuggestions == always {
-						// Cache suggestions.
-						c.suggested[word] = suggestions
-					} else {
-						// Mark as suggested.
-						c.suggested[word] = empty
-					}
-				}
-				if len(suggestions) != 0 {
-					fmt.Print(" (suggest: ")
-					for i, s := range suggestions {
-						if i != 0 {
-							fmt.Print(", ")
-						}
-						fmt.Printf("%s", c.suggest(s))
-					}
-					fmt.Print(")")
-				}
-			}
-			fmt.Println()
-			seen[word] = true
-		}
-		if c.Show {
-			if w.current.pos != lastPos {
-				args = append(args, text[lastPos:w.current.pos])
-			}
-			args = append(args, c.warn(text[w.current.pos:w.current.pos+len(word)]), text[w.current.pos+len(word):w.current.end])
-			lastPos = w.current.end
-		}
+		words = append(words, misspelled{word: word, span: w.current})
 	}
-	if args != nil {
-		if lastPos != len(text) {
-			args = append(args, text[lastPos:])
-		}
-		lines := strings.Split(join(args), "\n")
-		if lines[len(lines)-1] == "" {
-			lines = lines[:len(lines)-1]
-		}
-		fmt.Printf("\t%s\n", strings.Join(lines, "\n\t"))
+	if len(words) != 0 {
+		c.misspellings = append(c.misspellings, misspelling{
+			words: words,
+			where: where,
+			text:  text,
+			pos:   c.fileset.Position(node.Pos()),
+			end:   c.fileset.Position(node.End()),
+		})
 	}
+	return len(words) == 0
 }
 
 // rel returns the wd-relative path for the input if possible.
@@ -261,7 +223,7 @@ func (c *checker) Visit(n ast.Node) ast.Visitor {
 		if c.unexpectedEntropy(text, isDoubleQuoted) {
 			return c
 		}
-		c.check(n.Value, n.Pos(), "string")
+		c.check(n.Value, n, "string")
 	}
 	return c
 }
@@ -329,13 +291,4 @@ func expectedEntropy(n, s int) float64 {
 // spell check matching.
 func stripUnderscores(s string) string {
 	return strings.TrimFunc(s, func(r rune) bool { return r == '_' })
-}
-
-// join returns the string join of the given args.
-func join(args []interface{}) string {
-	var buf strings.Builder
-	for _, a := range args {
-		fmt.Fprint(&buf, a)
-	}
-	return buf.String()
 }

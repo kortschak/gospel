@@ -8,7 +8,7 @@ gospel -check-strings=false
 ! stderr .
 
 ! gospel -check-strings
-stdout 'main.go:4:10: "Speeling" is misspelled in string'
+stdout 'main.go:4:11: "Speeling" is misspelled in string'
 stdout '	"\x1b\[31;1;3mSpeeling\x1b\[0m error\."'
 ! stderr .
 

@@ -2,27 +2,27 @@
 ! gospel -check-strings -show=false
 ! stderr .
 
-stdout 'main.go:13:10: "misktaes" is misspelled in string'
-stdout 'main.go:13:10: "litreals" is misspelled in string'
-stdout 'main.go:14:10: "fo" is misspelled in string'
-stdout 'main.go:1:1: "programme" is misspelled in comment'
-stdout 'main.go:1:1: "seperate" is misspelled in comment'
-stdout 'main.go:10:1: "_nothign_" is misspelled in comment'
+stdout 'main.go:1:23: "programme" is misspelled in comment'
+stdout 'main.go:1:59: "seperate" is misspelled in comment'
+stdout 'main.go:10:21: "_nothign_" is misspelled in comment'
+stdout 'main.go:13:21: "misktaes" is misspelled in string'
+stdout 'main.go:13:56: "litreals" is misspelled in string'
+stdout 'main.go:14:20: "fo" is misspelled in string'
 
 # Don't ignore errors that match identifiers, but make a dictionary.
 ! gospel -check-strings -ignore-idents=false -show=false -misspellings=.words
 ! stderr .
 
-stdout 'main.go:13:10: "misktaes" is misspelled in string'
-stdout 'main.go:13:10: "litreals" is misspelled in string'
-stdout 'main.go:14:10: "fo" is misspelled in string'
-stdout 'main.go:14:10: "_errirs_" is misspelled in string'
-stdout 'main.go:14:10: "thes" is misspelled in string'
-stdout 'main.go:14:10: "thet" is misspelled in string'
-stdout 'main.go:14:10: "fnagle" is misspelled in string'
-stdout 'main.go:1:1: "programme" is misspelled in comment'
-stdout 'main.go:1:1: "seperate" is misspelled in comment'
-stdout 'main.go:10:1: "_nothign_" is misspelled in comment'
+stdout 'main.go:1:23: "programme" is misspelled in comment'
+stdout 'main.go:1:59: "seperate" is misspelled in comment'
+stdout 'main.go:10:21: "_nothign_" is misspelled in comment'
+stdout 'main.go:13:21: "misktaes" is misspelled in string'
+stdout 'main.go:13:56: "litreals" is misspelled in string'
+stdout 'main.go:14:20: "fo" is misspelled in string'
+stdout 'main.go:14:27: "_errirs_" is misspelled in string'
+stdout 'main.go:14:81: "thes" is misspelled in string'
+stdout 'main.go:14:90: "thet" is misspelled in string'
+stdout 'main.go:14:118: "fnagle" is misspelled in string'
 
 # Check it matches our expectation.
 cmp .words expected_words

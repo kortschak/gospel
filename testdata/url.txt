@@ -1,7 +1,7 @@
 # Show URLs can be ignored.
 
 ! gospel -show=false -mask-urls=false
-stdout 'dummy.go:3:1: "go15heapdump" is misspelled in comment'
+stdout 'dummy.go:4:25: "go15heapdump" is misspelled in comment'
 ! stderr .
 
 gospel -show=false -mask-urls=true

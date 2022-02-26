@@ -4,8 +4,8 @@ gospel -ignore-idents=true
 ! stderr .
 
 ! gospel -ignore-idents=false
-stdout 'main.go:3:1: "_Speeling_" is misspelled in comment'
-stdout '	\x1b\[31;1;3m_Speeling_\x1b\[0m\ error.'
+stdout 'main.go:3:4: "_Speeling_" is misspelled in comment'
+stdout '	// \x1b\[31;1;3m_Speeling_\x1b\[0m\ error.'
 
 -- go.mod --
 module dummy

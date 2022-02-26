@@ -1,7 +1,7 @@
 # Show regexp can ignore misspelled words.
 ! gospel -show=false -config=false
-stdout 'main.go:3:1: "Speeling" is misspelled in comment'
-stdout 'main.go:3:1: "mistaek" is misspelled in comment'
+stdout 'main.go:3:4: "Speeling" is misspelled in comment'
+stdout 'main.go:3:13: "mistaek" is misspelled in comment'
 ! stderr .
 
 gospel -show=false

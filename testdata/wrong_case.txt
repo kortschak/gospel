@@ -1,6 +1,6 @@
 # Check case matters in camel-cased words.
 ! gospel -show=false -misspellings=words
-stdout 'main.go:5:1: "KillTimeout" is misspelled in comment'
+stdout 'main.go:5:4: "KillTimeout" is misspelled in comment'
 ! stderr .
 
 # Check the complete list matches our expectation.

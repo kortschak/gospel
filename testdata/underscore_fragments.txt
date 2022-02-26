@@ -1,7 +1,7 @@
 # Show underscore-separated words are allowed when all parts are accepted as correct.
 ! gospel -ignore-single=false -max-word-len=0
-stdout 'main.go:3:1: "_ϵ_together_unknown_apart_correct_when_singles_allowed_" is misspelled in comment'
-stdout '	\x1b\[31;1;3m_ϵ_together_unknown_apart_correct_when_singles_allowed_\x1b\[0m'
+stdout 'main.go:3:4: "_ϵ_together_unknown_apart_correct_when_singles_allowed_" is misspelled in comment'
+stdout '	// \x1b\[31;1;3m_ϵ_together_unknown_apart_correct_when_singles_allowed_\x1b\[0m'
 ! stderr .
 
 gospel -ignore-single=false -max-word-len=30
