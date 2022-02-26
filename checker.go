@@ -6,11 +6,9 @@ package main
 
 import (
 	"bufio"
-	"errors"
 	"fmt"
 	"go/ast"
 	"go/token"
-	"go/types"
 	"io"
 	"math"
 	"os"
@@ -21,8 +19,6 @@ import (
 
 	"github.com/kortschak/camel"
 	"github.com/kortschak/ct"
-	"github.com/kortschak/hunspell"
-	"golang.org/x/tools/go/packages"
 	"mvdan.cc/xurls/v2"
 )
 
@@ -282,152 +278,6 @@ func (c *checker) unexpectedEntropy(text string, print bool) bool {
 	return e < low || high < e
 }
 
-// expectedEntropy returns the expected entropy for a sequence of n letters
-// uniformly chosen from an alphabet of s letters.
-func expectedEntropy(n, s int) float64 {
-	if n > s {
-		n = s
-	}
-	if n < 2 {
-		return 0
-	}
-	return -math.Log2(1 / float64(n))
-}
-
-// addIdentifiers adds identifier labels to the spelling dictionary.
-func addIdentifiers(spelling *hunspell.Spell, pkgs []*packages.Package, seen map[string]bool) error {
-	v := &adder{spelling: spelling}
-	for _, p := range pkgs {
-		v.pkg = p
-		for _, e := range strings.Split(p.String(), "/") {
-			if !spelling.IsCorrect(e) {
-				spelling.Add(e)
-			}
-		}
-		for _, w := range directiveWords(p.Syntax, p.Fset) {
-			if !spelling.IsCorrect(w) {
-				spelling.Add(w)
-			}
-		}
-		for _, f := range p.Syntax {
-			ast.Walk(v, f)
-		}
-		for _, dep := range p.Imports {
-			if seen[dep.String()] {
-				continue
-			}
-			seen[dep.String()] = true
-			addIdentifiers(spelling, []*packages.Package{dep}, seen)
-		}
-	}
-	if v.failed != 0 {
-		return errors.New("missed adding %d identifiers")
-	}
-	return nil
-}
-
-// directiveWords returns words used in directive comments.
-func directiveWords(files []*ast.File, fset *token.FileSet) []string {
-	var words []string
-	for _, f := range files {
-		m := ast.NewCommentMap(fset, f, f.Comments)
-		for _, g := range m {
-			for _, cg := range g {
-				for _, c := range cg.List {
-					if !strings.HasPrefix(c.Text, "//") {
-						continue
-					}
-					text := strings.TrimPrefix(c.Text, "//")
-					if strings.HasPrefix(text, " ") {
-						continue
-					}
-					idx := strings.Index(text, ":")
-					if idx < 1 {
-						continue
-					}
-					if strings.HasPrefix(text[idx+1:], " ") {
-						continue
-					}
-					line := strings.SplitN(text, "\n", 2)[0]
-					directive := strings.SplitN(line, " ", 2)[0]
-					words = append(words, strings.FieldsFunc(directive, func(r rune) bool {
-						return unicode.IsSpace(r) || unicode.IsSymbol(r) || unicode.IsPunct(r)
-					})...)
-				}
-			}
-		}
-	}
-	return words
-}
-
-// adder is an ast.Visitor that adds tokens to a spelling dictionary.
-type adder struct {
-	spelling *hunspell.Spell
-	failed   int
-	pkg      *packages.Package
-}
-
-// Visit adds the names of all identifiers to the dictionary.
-func (a *adder) Visit(n ast.Node) ast.Visitor {
-	switch n := n.(type) {
-	case *ast.Ident:
-		// Check whether this is a type and only make it
-		// countable in that case.
-		ok := n.Obj != nil && n.Obj.Kind == ast.Typ
-		a.addWordUnknownWord(stripUnderscores(n.Name), ok)
-	case *ast.StructType:
-		typ, ok := a.pkg.TypesInfo.Types[n].Type.(*types.Struct)
-		if !ok {
-			break
-		}
-		for i := 0; i < typ.NumFields(); i++ {
-			f := typ.Field(i)
-			if !f.Exported() {
-				continue
-			}
-			for _, w := range extractStructTagWords(typ.Tag(i)) {
-				a.addWordUnknownWord(w, false)
-			}
-		}
-	}
-	return a
-}
-
-func (a *adder) addWordUnknownWord(w string, countable bool) {
-	if a.spelling.IsCorrect(w) {
-		// Assume we have the correct plurality rules.
-		// This should work most of the time. If it turns
-		// out to be a problem, we can make this conditional
-		// on countable and always add those terms.
-		return
-	}
-	var ok bool
-	if countable {
-		ok = a.spelling.AddWithAffix(w, "item")
-	} else {
-		ok = a.spelling.Add(w)
-	}
-	if !ok {
-		a.failed++
-	}
-}
-
-// stripUnderscores removes leading and trailing underscores from
-// words to prevent emph marking used in comments from preventing
-// spell check matching.
-func stripUnderscores(s string) string {
-	return strings.TrimFunc(s, func(r rune) bool { return r == '_' })
-}
-
-// join returns the string join of the given args.
-func join(args []interface{}) string {
-	var buf strings.Builder
-	for _, a := range args {
-		fmt.Fprint(&buf, a)
-	}
-	return buf.String()
-}
-
 // entropy returns the entropy of the provided text in bits. If
 // print is true, non-printable characters are grouped into a single
 // class.
@@ -460,4 +310,32 @@ func entropy(text string, print bool) float64 {
 		return 0
 	}
 	return -e
+}
+
+// expectedEntropy returns the expected entropy for a sequence of n letters
+// uniformly chosen from an alphabet of s letters.
+func expectedEntropy(n, s int) float64 {
+	if n > s {
+		n = s
+	}
+	if n < 2 {
+		return 0
+	}
+	return -math.Log2(1 / float64(n))
+}
+
+// stripUnderscores removes leading and trailing underscores from
+// words to prevent emph marking used in comments from preventing
+// spell check matching.
+func stripUnderscores(s string) string {
+	return strings.TrimFunc(s, func(r rune) bool { return r == '_' })
+}
+
+// join returns the string join of the given args.
+func join(args []interface{}) string {
+	var buf strings.Builder
+	for _, a := range args {
+		fmt.Fprint(&buf, a)
+	}
+	return buf.String()
 }
