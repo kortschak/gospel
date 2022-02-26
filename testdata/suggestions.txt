@@ -4,42 +4,34 @@
 
 # never show suggestions
 ! gospel -show=false -suggest=0
-stdout 'main.go:6:4: "coloured" is misspelled in comment$'
-stdout 'main.go:10:4: "coloured" is misspelled in comment$'
-stdout 'main.go:10:13: "coloured" is misspelled in comment$'
 ! stderr .
+cmp stdout expected_noshow_nosuggest
+
 
 # show suggestion for first occurrence 
 ! gospel -show=false -suggest=1
-stdout 'main.go:6:4: "coloured" is misspelled in comment \(suggest: colored, co loured, co-loured\)'
-stdout 'main.go:10:4: "coloured" is misspelled in comment$'
-stdout 'main.go:10:13: "coloured" is misspelled in comment$'
 ! stderr .
+cmp stdout expected_noshow_suggest_one
+
 
 # always show suggestions
 ! gospel -show=false -suggest=2
-stdout 'main.go:6:4: "coloured" is misspelled in comment \(suggest: colored, co loured, co-loured\)$'
-stdout 'main.go:10:4: "coloured" is misspelled in comment \(suggest: colored, co loured, co-loured\)$'
-stdout 'main.go:10:13: "coloured" is misspelled in comment \(suggest: colored, co loured, co-loured\)$'
 ! stderr .
+cmp stdout expected_noshow_suggest_always
 
 
 # Coloured when -show=true
 
 # show suggestion for first occurrence 
 ! gospel -suggest=1
-stdout 'main.go:6:4: "coloured" is misspelled in comment \(suggest: \x1b\[32;1;3mcolored\x1b\[0m,'
-stdout 'main.go:10:4: "coloured" is misspelled in comment$'
-stdout 'main.go:10:13: "coloured" is misspelled in comment$'
 ! stderr .
+cmp stdout expected_show_suggest_one
+
 
 # always show suggestions
 ! gospel -suggest=2
-stdout 'main.go:6:4: "coloured" is misspelled in comment \(suggest: \x1b\[32;1;3mcolored\x1b\[0m,'
-stdout 'main.go:10:4: "coloured" is misspelled in comment \(suggest: \x1b\[32;1;3mcolored\x1b\[0m,'
-stdout 'main.go:10:13: "coloured" is misspelled in comment \(suggest: \x1b\[32;1;3mcolored\x1b\[0m,'
 ! stderr .
-
+cmp stdout expected_show_suggest_always
 
 -- go.mod --
 module dummy
@@ -56,3 +48,27 @@ func fn1() {
 // coloured coloured
 func fn2() {
 }
+-- expected_noshow_nosuggest --
+main.go:6:4: "coloured" is misspelled in comment
+main.go:10:4: "coloured" is misspelled in comment
+main.go:10:13: "coloured" is misspelled in comment
+-- expected_noshow_suggest_one --
+main.go:6:4: "coloured" is misspelled in comment (suggest: colored, co loured, co-loured)
+main.go:10:4: "coloured" is misspelled in comment
+main.go:10:13: "coloured" is misspelled in comment
+-- expected_noshow_suggest_always --
+main.go:6:4: "coloured" is misspelled in comment (suggest: colored, co loured, co-loured)
+main.go:10:4: "coloured" is misspelled in comment (suggest: colored, co loured, co-loured)
+main.go:10:13: "coloured" is misspelled in comment (suggest: colored, co loured, co-loured)
+-- expected_show_suggest_one --
+main.go:6:4: "coloured" is misspelled in comment (suggest: [32;1;3mcolored[0m, [32;1;3mco loured[0m, [32;1;3mco-loured[0m)
+	// [31;1;3mcoloured[0m
+main.go:10:4: "coloured" is misspelled in comment
+main.go:10:13: "coloured" is misspelled in comment
+	// [31;1;3mcoloured[0m [31;1;3mcoloured[0m
+-- expected_show_suggest_always --
+main.go:6:4: "coloured" is misspelled in comment (suggest: [32;1;3mcolored[0m, [32;1;3mco loured[0m, [32;1;3mco-loured[0m)
+	// [31;1;3mcoloured[0m
+main.go:10:4: "coloured" is misspelled in comment (suggest: [32;1;3mcolored[0m, [32;1;3mco loured[0m, [32;1;3mco-loured[0m)
+main.go:10:13: "coloured" is misspelled in comment (suggest: [32;1;3mcolored[0m, [32;1;3mco loured[0m, [32;1;3mco-loured[0m)
+	// [31;1;3mcoloured[0m [31;1;3mcoloured[0m

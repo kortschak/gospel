@@ -1,4 +1,5 @@
 # Show labels are added to dictionary; no change in functionality.
+
 gospel
 ! stdout .
 ! stderr .

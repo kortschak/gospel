@@ -1,15 +1,12 @@
 # Ignore words in directive comments.
+
 ! gospel -show=false -ignore-idents=false
-stdout 'main.go:3:55: "gennerated" is misspelled in comment'
-stdout 'main.go:5:12: "gennerated" is misspelled in comment'
-stdout 'main.go:6:6: "sumtype" is misspelled in comment'
-stdout 'main.go:6:14: "ignoretypes" is misspelled in comment'
 ! stderr .
+cmp stdout expected_output_noignore
 
 ! gospel -show=false -misspellings=words
-stdout 'main.go:3:55: "gennerated" is misspelled in comment'
-stdout 'main.go:5:12: "gennerated" is misspelled in comment'
 ! stderr .
+cmp stdout expected_output_ignore
 
 cmp words expected_words
 
@@ -27,3 +24,11 @@ func main() {
 -- expected_words --
 1
 gennerated
+-- expected_output_noignore --
+main.go:3:55: "gennerated" is misspelled in comment
+main.go:5:12: "gennerated" is misspelled in comment
+main.go:6:6: "sumtype" is misspelled in comment
+main.go:6:14: "ignoretypes" is misspelled in comment
+-- expected_output_ignore --
+main.go:3:55: "gennerated" is misspelled in comment
+main.go:5:12: "gennerated" is misspelled in comment

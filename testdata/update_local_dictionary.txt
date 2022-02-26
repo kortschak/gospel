@@ -1,8 +1,8 @@
 # Update an existing local dictionary of misspelled words.
+
 ! gospel -show=false -misspellings=.words -update-dict=true
-stdout 'main.go:3:13: "errah" is misspelled in comment'
-! stdout 'Speeling'
 ! stderr .
+cmp stdout expected_output
 
 # Check it matches our expectation.
 cmp .words expected_words
@@ -29,3 +29,5 @@ Speeling/S
 2
 Speeling/S
 errah
+-- expected_output --
+main.go:3:13: "errah" is misspelled in comment

@@ -1,13 +1,12 @@
 # Show config can be used and turned off.
+
 ! gospel -show=false
-stdout 'main.go:3:26: "Mistooken" is misspelled in string'
-stdout 'main.go:3:36: "tæxt" is misspelled in string'
 ! stderr .
+cmp stdout expected_output_config
 
 ! gospel -show=false -config=true
-stdout 'main.go:3:26: "Mistooken" is misspelled in string'
-stdout 'main.go:3:36: "tæxt" is misspelled in string'
 ! stderr .
+cmp stdout expected_output_config
 
 gospel -show=false -config=false
 ! stdout .
@@ -24,3 +23,6 @@ func main() {
 }
 -- .gospel.conf --
 check_strings = true
+-- expected_output_config --
+main.go:3:26: "Mistooken" is misspelled in string
+main.go:3:36: "tæxt" is misspelled in string

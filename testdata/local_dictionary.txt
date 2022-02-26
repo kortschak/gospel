@@ -1,8 +1,8 @@
 # Generate a local dictionary of misspelled words.
+
 ! gospel -show=false -misspellings=.words -update-dict=false
-stdout 'main.go:3:4: "Speeling" is misspelled in comment'
-! stdout '	// \x1b\[31;1;3mSpeeling\x1b\[0m\ error.'
 ! stderr .
+cmp stdout expected_output
 
 # Check it matches our expectation.
 cmp .words expected_words
@@ -23,3 +23,5 @@ func main() {
 -- expected_words --
 1
 Speeling
+-- expected_output --
+main.go:3:4: "Speeling" is misspelled in comment

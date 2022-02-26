@@ -1,8 +1,8 @@
 # Show misspelling in a comment and correct colourisation.
+
 ! gospel
-stdout 'main.go:3:4: "Speeling" is misspelled in comment'
-stdout '	// \x1b\[31;1;3mSpeeling\x1b\[0m\ error.'
 ! stderr .
+cmp stdout expected_output
 
 -- go.mod --
 module dummy
@@ -12,3 +12,6 @@ package main
 // Speeling error.
 func main() {
 }
+-- expected_output --
+main.go:3:4: "Speeling" is misspelled in comment
+	// [31;1;3mSpeeling[0m error.

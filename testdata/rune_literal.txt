@@ -1,4 +1,5 @@
 gospel -show=false -check-strings -max-word-len=20 -entropy-filter
+
 ! stdout .
 ! stderr .
 

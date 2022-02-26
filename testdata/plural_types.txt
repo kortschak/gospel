@@ -1,9 +1,8 @@
 # Show types are recognised in their plural.
 
 ! gospel -show=false
-! stdout '"privatetypes" is misspelled in comment'
-stdout 'main.go:7:26: "privatevalues" is misspelled in comment'
 ! stderr .
+cmp stdout expected_output
 
 -- go.mod --
 module dummy
@@ -20,3 +19,5 @@ func main() {
 	var privatevalue privatetype
 	println(privatevalue)
 }
+-- expected_output --
+main.go:7:26: "privatevalues" is misspelled in comment

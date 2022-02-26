@@ -1,4 +1,5 @@
 # Report correct error when there is no dictionary for the requested language.
+
 ! gospel -lang='en_FR'
 ! stdout .
 stderr 'no en_FR dictionary found in:'
