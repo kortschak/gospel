@@ -1,7 +1,8 @@
 # Check case matters in camel-cased words.
+
 ! gospel -show=false -misspellings=words
-stdout 'main.go:5:4: "KillTimeout" is misspelled in comment'
 ! stderr .
+cmp stdout expected_output
 
 # Check the complete list matches our expectation.
 cmp words expected_words
@@ -19,3 +20,5 @@ func DefaultExecHandler(killTimeout time.Duration) {
 -- expected_words --
 1
 KillTimeout
+-- expected_output --
+main.go:5:4: "KillTimeout" is misspelled in comment

@@ -1,7 +1,8 @@
 # Show underscore-separated words are allowed when all parts are accepted as correct.
+
 ! gospel -camel=false
-stdout 'main.go:3:4: "ExampleWholeProgram" is misspelled in comment'
 ! stderr .
+cmp stdout expected_output
 
 gospel
 ! stdout .
@@ -15,3 +16,6 @@ package main
 // ExampleWholeProgram
 func main() {
 }
+-- expected_output --
+main.go:3:4: "ExampleWholeProgram" is misspelled in comment
+	// [31;1;3mExampleWholeProgram[0m

@@ -1,28 +1,13 @@
 # Show vetting a complete program with multiple distinct errors.
+
 ! gospel -check-strings -show=false
 ! stderr .
-
-stdout 'main.go:1:23: "programme" is misspelled in comment'
-stdout 'main.go:1:59: "seperate" is misspelled in comment'
-stdout 'main.go:10:21: "_nothign_" is misspelled in comment'
-stdout 'main.go:13:21: "misktaes" is misspelled in string'
-stdout 'main.go:13:56: "litreals" is misspelled in string'
-stdout 'main.go:14:20: "fo" is misspelled in string'
+cmp stdout expected_output_ignore_idents
 
 # Don't ignore errors that match identifiers, but make a dictionary.
 ! gospel -check-strings -ignore-idents=false -show=false -misspellings=.words
 ! stderr .
-
-stdout 'main.go:1:23: "programme" is misspelled in comment'
-stdout 'main.go:1:59: "seperate" is misspelled in comment'
-stdout 'main.go:10:21: "_nothign_" is misspelled in comment'
-stdout 'main.go:13:21: "misktaes" is misspelled in string'
-stdout 'main.go:13:56: "litreals" is misspelled in string'
-stdout 'main.go:14:20: "fo" is misspelled in string'
-stdout 'main.go:14:27: "_errirs_" is misspelled in string'
-stdout 'main.go:14:81: "thes" is misspelled in string'
-stdout 'main.go:14:90: "thet" is misspelled in string'
-stdout 'main.go:14:118: "fnagle" is misspelled in string'
+cmp stdout expected_output_noignore_idents
 
 # Check it matches our expectation.
 cmp .words expected_words
@@ -67,3 +52,21 @@ programme
 seperate
 thes
 thet
+-- expected_output_ignore_idents --
+main.go:1:23: "programme" is misspelled in comment
+main.go:1:59: "seperate" is misspelled in comment
+main.go:10:21: "_nothign_" is misspelled in comment
+main.go:13:21: "misktaes" is misspelled in string
+main.go:13:56: "litreals" is misspelled in string
+main.go:14:20: "fo" is misspelled in string
+-- expected_output_noignore_idents --
+main.go:1:23: "programme" is misspelled in comment
+main.go:1:59: "seperate" is misspelled in comment
+main.go:10:21: "_nothign_" is misspelled in comment
+main.go:13:21: "misktaes" is misspelled in string
+main.go:13:56: "litreals" is misspelled in string
+main.go:14:20: "fo" is misspelled in string
+main.go:14:27: "_errirs_" is misspelled in string
+main.go:14:81: "thes" is misspelled in string
+main.go:14:90: "thet" is misspelled in string
+main.go:14:118: "fnagle" is misspelled in string

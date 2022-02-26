@@ -1,6 +1,6 @@
 # Show config can be written.
-gospel -write-config -max-word-len=30
 
+gospel -write-config -max-word-len=30
 cmp stdout gospel.conf
 
 -- go.mod --

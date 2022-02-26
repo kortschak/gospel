@@ -1,7 +1,7 @@
 # Show correct indent behaviour.
 
 ! gospel -check-strings
-
+! stderr .
 cmp stdout expected
 
 -- go.mod --
