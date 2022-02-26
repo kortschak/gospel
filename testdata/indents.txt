@@ -1,0 +1,156 @@
+# Show correct indent behaviour.
+
+! gospel -check-strings
+
+cmp stdout expected
+
+-- go.mod --
+module dummy
+-- main.go --
+package main
+
+/* previous block
+*/
+// Preffix
+/*
+Zero level non-indented blockcomment.
+Second line.
+*/
+// Sufffix
+/* subsequent block
+*/
+
+// Prefix
+/*
+	Zero level indented blockcomment.
+	Second line.
+*/
+// Sufffix
+
+// Zero level linecomment.
+
+const c0d = "Zero level doublequoted."
+
+const c0s = `
+Zero level singlequoted.
+Second line.
+`
+
+func main() {
+	/* previous block
+	*/
+	// Preffix
+	/*
+		First level indented blockcomment.
+		Second line.
+	*/
+	// Sufffix
+	/* subsequent block
+	*/
+
+	// First level linecomment.
+
+	const c1d = "First level doublequoted."
+
+	const c1s = `
+First level singlequoted.
+Second line.
+`
+
+	{
+		/* previous block
+		*/
+		// Preffix
+		/*
+			Second level indented blockcomment.
+			Second line.
+		*/
+		// Sufffix
+		/* subsequent block
+		*/
+
+		// Second level linecomment.
+
+		const c1d = "Second level doublequoted."
+
+		const c1s = `
+Second level singlequoted.
+Second line.
+`
+	}
+}
+-- expected --
+main.go:5:4: "Preffix" is misspelled in comment
+main.go:6:28: "blockcomment" is misspelled in comment
+main.go:10:4: "Sufffix" is misspelled in comment
+	/* previous block
+	*/
+	// [31;1;3mPreffix[0m
+	/*
+	Zero level non-indented [31;1;3mblockcomment[0m.
+	Second line.
+	*/
+	// [31;1;3mSufffix[0m
+	/* subsequent block
+	*/
+main.go:15:25: "blockcomment" is misspelled in comment
+main.go:19:4: "Sufffix" is misspelled in comment
+	// Prefix
+	/*
+		Zero level indented [31;1;3mblockcomment[0m.
+		Second line.
+	*/
+	// [31;1;3mSufffix[0m
+main.go:21:15: "linecomment" is misspelled in comment
+	// Zero level [31;1;3mlinecomment[0m.
+main.go:23:25: "doublequoted" is misspelled in string
+	"Zero level [31;1;3mdoublequoted[0m."
+main.go:25:26: "singlequoted" is misspelled in string
+	`
+	Zero level [31;1;3msinglequoted[0m.
+	Second line.
+	`
+main.go:33:5: "Preffix" is misspelled in comment
+main.go:34:28: "blockcomment" is misspelled in comment
+main.go:38:5: "Sufffix" is misspelled in comment
+	/* previous block
+	*/
+	// [31;1;3mPreffix[0m
+	/*
+		First level indented [31;1;3mblockcomment[0m.
+		Second line.
+	*/
+	// [31;1;3mSufffix[0m
+	/* subsequent block
+	*/
+main.go:42:17: "linecomment" is misspelled in comment
+	// First level [31;1;3mlinecomment[0m.
+main.go:44:27: "doublequoted" is misspelled in string
+	"First level [31;1;3mdoublequoted[0m."
+main.go:46:28: "singlequoted" is misspelled in string
+	`
+	First level [31;1;3msinglequoted[0m.
+	Second line.
+	`
+main.go:54:6: "Preffix" is misspelled in comment
+main.go:55:31: "blockcomment" is misspelled in comment
+main.go:59:6: "Sufffix" is misspelled in comment
+	/* previous block
+	*/
+	// [31;1;3mPreffix[0m
+	/*
+		Second level indented [31;1;3mblockcomment[0m.
+		Second line.
+	*/
+	// [31;1;3mSufffix[0m
+	/* subsequent block
+	*/
+main.go:63:19: "linecomment" is misspelled in comment
+	// Second level [31;1;3mlinecomment[0m.
+main.go:65:29: "doublequoted" is misspelled in string
+	"Second level [31;1;3mdoublequoted[0m."
+main.go:67:30: "singlequoted" is misspelled in string
+	`
+	Second level [31;1;3msinglequoted[0m.
+	Second line.
+	`

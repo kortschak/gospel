@@ -4,9 +4,9 @@
 ! stdout '"maskedmistake"'
 ! stdout '"emb"'
 ! stdout '"edded"'
-stdout 'main.go:3:1: "badtag" is misspelled in comment'
-stdout 'main.go:3:1: "unmaskedmistake" is misspelled in comment'
-stdout 'main.go:3:1: "failedmistake" is misspelled in comment'
+stdout 'main.go:5:4: "badtag" is misspelled in comment'
+stdout 'main.go:6:4: "unmaskedmistake" is misspelled in comment'
+stdout 'main.go:8:4: "failedmistake" is misspelled in comment'
 ! stderr .
 
 -- go.mod --

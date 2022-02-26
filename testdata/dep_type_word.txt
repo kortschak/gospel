@@ -4,8 +4,8 @@ gospel -ignore-idents=true
 ! stderr .
 
 ! gospel -ignore-idents=false
-stdout 'main.go:5:1: "Foooooo" is misspelled in comment'
-stdout 'main.go:5:1: "Baaaaaa" is misspelled in comment'
+stdout 'main.go:5:6: "Foooooo" is misspelled in comment'
+stdout 'main.go:5:18: "Baaaaaa" is misspelled in comment'
 ! stderr .
 
 -- go.mod --

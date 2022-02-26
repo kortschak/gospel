@@ -1,12 +1,14 @@
 # Ignore words in directive comments.
 ! gospel -show=false -ignore-idents=false
-stdout 'main.go:5:1: "gennerated" is misspelled in comment'
-stdout 'main.go:5:1: "sumtype" is misspelled in comment'
-stdout 'main.go:5:1: "ignoretypes" is misspelled in comment'
+stdout 'main.go:3:55: "gennerated" is misspelled in comment'
+stdout 'main.go:5:12: "gennerated" is misspelled in comment'
+stdout 'main.go:6:6: "sumtype" is misspelled in comment'
+stdout 'main.go:6:14: "ignoretypes" is misspelled in comment'
 ! stderr .
 
 ! gospel -show=false -misspellings=words
-stdout 'main.go:5:1: "gennerated" is misspelled in comment'
+stdout 'main.go:3:55: "gennerated" is misspelled in comment'
+stdout 'main.go:5:12: "gennerated" is misspelled in comment'
 ! stderr .
 
 cmp words expected_words

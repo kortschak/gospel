@@ -219,19 +219,38 @@ change in behaviour in future versions.
 				ast.Walk(c, f)
 			}
 			for _, g := range f.Comments {
-				// TODO(kortschak): Check each line of comment
-				// individually and provide ±line of context.
-				// This reduces output and takes the user to
-				// the error location more quickly. It also
-				// means that we can spell check reasons in
-				// linting and compiler directives.
-				c.check(g.Text(), g.Pos(), "comment")
+				lastOK := true
+				for i, l := range g.List {
+					ok := c.check(l.Text, l, "comment")
+
+					// Provide context for spelling in comments.
+					if !ok {
+						if i != 0 && lastOK {
+							prev := g.List[i-1]
+							c.misspellings = append(c.misspellings, misspelling{
+								text: prev.Text,
+								pos:  c.fileset.Position(prev.Pos()),
+								end:  c.fileset.Position(prev.End()),
+							})
+						}
+					} else {
+						if !lastOK {
+							c.misspellings = append(c.misspellings, misspelling{
+								text: l.Text,
+								pos:  c.fileset.Position(l.Pos()),
+								end:  c.fileset.Position(l.End()),
+							})
+						}
+					}
+					lastOK = ok
+				}
 			}
 		}
 	}
 	if d.misspellings != 0 {
 		status |= spellingError
 	}
+	c.report()
 
 	err = d.writeMisspellings()
 	if err != nil {

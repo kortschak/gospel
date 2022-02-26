@@ -1,6 +1,6 @@
 # Show underscore-separated words are allowed when all parts are accepted as correct.
 ! gospel -camel=false
-stdout 'main.go:3:1: "ExampleWholeProgram" is misspelled in comment'
+stdout 'main.go:3:4: "ExampleWholeProgram" is misspelled in comment'
 ! stderr .
 
 gospel
