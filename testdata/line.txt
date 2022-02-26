@@ -1,0 +1,54 @@
+# Show line redirection.
+
+! gospel -show=false -check-strings
+! stderr .
+cmp stdout expected_output
+
+# Note that column offsets are per byte and so incorrect for
+# utf8 in the general case. This can be seen for "generada",
+# but the behaviour is consistent with un-adjusted positions.
+
+-- go.mod --
+module dummy
+-- dummy.template --
+package dummy
+
+import (
+{{.Imports}}
+)
+
+//line dummy.template:8:1
+// Máquina generada.
+func foo(r io.Reader) int {
+	{{.Body}}
+	return n
+}
+
+//line dummy.template:16:1
+const useless = "inutil"
+-- dummy.go --
+package dummy
+
+import (
+	"bufio"
+	"io"
+	"unicode/utf8"
+)
+
+//line dummy.template:8:1
+// Máquina generada.
+func foo(r io.Reader) int {
+	sc := bufio.NewScanner(r)
+	var n int
+	for sc.Scan() {
+		n += utf8.RuneCount(sc.Bytes())
+	}
+	return n
+}
+
+//line dummy.template:16:1
+const useless = "inutil"
+-- expected_output --
+dummy.template:8:4: "Máquina" is misspelled in comment
+dummy.template:8:13: "generada" is misspelled in comment
+dummy.template:16:18: "inutil" is misspelled in string
