@@ -55,8 +55,10 @@ type config struct {
 	MinNakedHex     int           `toml:"min_naked_hex"`  // ignore words at least this long if only hex digits.
 	Patterns        []string      `toml:"patterns"`       // acceptable words defined by regexp.
 	MakeSuggestions int           `toml:"suggest"`        // make suggestions for misspelled words.
+	DiffContext     int           `toml:"diff_context"`   // specify number of lines of change context to include.
 	EntropyFiler    entropyFilter `toml:"entropy_filter"` // specify entropy filter behaviour (experimental).
 
+	since  string
 	words  string
 	paths  string
 	update bool
@@ -80,6 +82,7 @@ var defaults = config{
 	MaxWordLen:      40,
 	MinNakedHex:     8,
 	MakeSuggestions: never,
+	DiffContext:     0,
 
 	// Experimental options.
 	EntropyFiler: entropyFilter{
@@ -130,11 +133,13 @@ func gospel() (status int) {
 	flag.IntVar(&config.MinNakedHex, "min-naked-hex", config.MinNakedHex, "length to recognize hex-digit words as number (0 is never ignore)")
 	flag.IntVar(&config.MaxWordLen, "max-word-len", config.MaxWordLen, "ignore words longer than this (0 is no limit)")
 	flag.IntVar(&config.MakeSuggestions, "suggest", config.MakeSuggestions, "make suggestions for misspellings (0 - never, 1 - first instance, 2 - always)")
+	flag.IntVar(&config.DiffContext, "diff-context", config.DiffContext, "specify number of lines of change context to include")
 
 	// Non-persisted config options.
 	flag.StringVar(&config.paths, "dict-paths", config.paths, "directory list containing hunspell dictionaries")
 	flag.StringVar(&config.words, "misspellings", "", "file to write a dictionary of misspellings (.dic format)")
 	flag.BoolVar(&config.update, "update-dict", false, "update misspellings dictionary instead of creating a new one")
+	flag.StringVar(&config.since, "since", config.since, "only consider changes since this ref (requires git)")
 
 	writeConf := flag.Bool("write-config", false, "write config file based on flags and existing config to stdout and exit")
 	flag.Bool("config", true, "use config file") // Included for documentation.
@@ -175,6 +180,10 @@ change in behaviour in future versions.
 	}
 	if config.MakeSuggestions < never || always < config.MakeSuggestions {
 		fmt.Fprintln(os.Stderr, "invalid suggest flag value")
+		return invocationError
+	}
+	if strings.Contains(config.since, "..") {
+		fmt.Fprintln(os.Stderr, "cannot use commit range for since argument")
 		return invocationError
 	}
 

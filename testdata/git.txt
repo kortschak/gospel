@@ -1,0 +1,271 @@
+# Show history-dependent checks.
+
+exec git init
+exec git config user.email 'nobody@nowhere.org'
+exec git config user.name 'Nobody'
+exec git add go.mod
+exec git commit -m 'initial commit'
+exec git tag v0
+
+exec git am '0001-initial-code.patch'
+exec git tag v1
+
+exec git am '0002-initial-errors.patch'
+exec git tag v2
+
+exec git am '0003-add-comment-next-to-errors.patch'
+exec git tag v3
+
+exec git am '0004-delete-comment-next-to-errors.patch'
+exec git tag v4
+
+exec git am '0005-add-block-comment-with-error.patch'
+exec git tag v5
+
+exec git am '0006-make-comment-block-accurate.patch'
+exec git tag v6
+
+# We are just passing this through to git diff, so
+# check that we filter out commit ranges since they
+# may be referring to different file positions and so
+# are meaningless for us.
+! gospel -since v1..v5
+! stdout .
+stderr 'cannot use commit range for since argument'
+
+# Ignoring history should get us the same result
+# as considering from the beginning of time.
+! gospel -check-strings
+! stderr .
+cmp stdout since_v0_context_0
+
+! gospel -check-strings -since v0
+! stderr .
+cmp stdout since_v0_context_0
+
+! gospel -check-strings -since v1
+! stderr .
+cmp stdout since_v1_context_0
+
+# v5 introduced an error, so we expect to find it.
+! gospel -check-strings -since v3
+! stderr .
+cmp stdout since_v3_context_0
+
+# ... and v4 removed a line of text next to an error
+# so we expect to get that as will here with context=1.
+! gospel -check-strings -since v3 -diff-context=1
+! stderr .
+cmp stdout since_v3_context_1
+
+# v6 removed an error, but was next to one, so we
+# expect to get a report with a context of 1.
+gospel -check-strings -since v5
+! stdout .
+! stderr .
+
+! gospel -check-strings -since v5 -diff-context=1
+! stderr .
+cmp stdout since_v5_context_1
+
+-- since_v0_context_0 --
+main.go:6:33: "errroooor" is misspelled in comment
+main.go:11:15: "Hulloo" is misspelled in string
+main.go:11:23: "Wurld" is misspelled in string
+	/*
+		A bunch of text with an
+		[31;1;3merrroooor[0m in the middle
+		of it.
+	*/
+	"[31;1;3mHulloo[0m, [31;1;3mWurld[0m!"
+-- since_v1_context_0 --
+main.go:6:33: "errroooor" is misspelled in comment
+main.go:11:15: "Hulloo" is misspelled in string
+main.go:11:23: "Wurld" is misspelled in string
+	/*
+		A bunch of text with an
+		[31;1;3merrroooor[0m in the middle
+		of it.
+	*/
+	"[31;1;3mHulloo[0m, [31;1;3mWurld[0m!"
+-- since_v3_context_0 --
+main.go:6:33: "errroooor" is misspelled in comment
+	/*
+		A bunch of text with an
+		[31;1;3merrroooor[0m in the middle
+		of it.
+	*/
+-- since_v3_context_1 --
+main.go:6:33: "errroooor" is misspelled in comment
+main.go:11:15: "Hulloo" is misspelled in string
+main.go:11:23: "Wurld" is misspelled in string
+	/*
+		A bunch of text with an
+		[31;1;3merrroooor[0m in the middle
+		of it.
+	*/
+	"[31;1;3mHulloo[0m, [31;1;3mWurld[0m!"
+-- since_v5_context_1 --
+main.go:6:33: "errroooor" is misspelled in comment
+	/*
+		A bunch of text with an
+		[31;1;3merrroooor[0m in the middle
+		of it.
+	*/
+-- go.mod --
+module testrepo
+
+go 1.17
+-- 0001-initial-code.patch --
+From 1e65dcffa74310a34beb6ad27696ac668ebeeec6 Mon Sep 17 00:00:00 2001
+From: Nobody <nobody@nowhere.org>
+Date: Sun, 27 Feb 2022 15:26:15 +1030
+Subject: [PATCH 1/6] initial code
+
+---
+ main.go | 7 +++++++
+ 1 file changed, 7 insertions(+)
+ create mode 100644 main.go
+
+diff --git a/main.go b/main.go
+new file mode 100644
+index 0000000..a3dd973
+--- /dev/null
++++ b/main.go
+@@ -0,0 +1,7 @@
++package main
++
++import "fmt"
++
++func main() {
++	fmt.Println("Hello, World!")
++}
+-- 
+2.17.1
+
+-- 0002-initial-errors.patch --
+From 3cc3de6ac1dafb9b38cfaa25f380c886016fe7cf Mon Sep 17 00:00:00 2001
+From: Nobody <nobody@nowhere.org>
+Date: Sun, 27 Feb 2022 15:26:46 +1030
+Subject: [PATCH 2/6] initial errors
+
+---
+ main.go | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/main.go b/main.go
+index a3dd973..d74ba56 100644
+--- a/main.go
++++ b/main.go
+@@ -3,5 +3,5 @@ package main
+ import "fmt"
+ 
+ func main() {
+-	fmt.Println("Hello, World!")
++	fmt.Println("Hulloo, Wurld!")
+ }
+-- 
+2.17.1
+
+-- 0003-add-comment-next-to-errors.patch --
+From ecb761c5b5ff44009f96baef399a0d28a09599fe Mon Sep 17 00:00:00 2001
+From: Nobody <nobody@nowhere.org>
+Date: Sun, 27 Feb 2022 15:27:05 +1030
+Subject: [PATCH 3/6] add comment next to errors
+
+---
+ main.go | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/main.go b/main.go
+index d74ba56..9c14669 100644
+--- a/main.go
++++ b/main.go
+@@ -3,5 +3,6 @@ package main
+ import "fmt"
+ 
+ func main() {
++	// Adjacent comment.
+ 	fmt.Println("Hulloo, Wurld!")
+ }
+-- 
+2.17.1
+
+-- 0004-delete-comment-next-to-errors.patch --
+From ce64bc12b8574e8fd74ba7320b7e8479f39a57ad Mon Sep 17 00:00:00 2001
+From: Nobody <nobody@nowhere.org>
+Date: Sun, 27 Feb 2022 15:27:27 +1030
+Subject: [PATCH 4/6] delete comment next to errors
+
+---
+ main.go | 1 -
+ 1 file changed, 1 deletion(-)
+
+diff --git a/main.go b/main.go
+index 9c14669..d74ba56 100644
+--- a/main.go
++++ b/main.go
+@@ -3,6 +3,5 @@ package main
+ import "fmt"
+ 
+ func main() {
+-	// Adjacent comment.
+ 	fmt.Println("Hulloo, Wurld!")
+ }
+-- 
+2.17.1
+
+-- 0005-add-block-comment-with-error.patch --
+From 3da383eab0db56abef3e74fdfc2049a3d90c2463 Mon Sep 17 00:00:00 2001
+From: Nobody <nobody@nowhere.org>
+Date: Sun, 27 Feb 2022 15:30:38 +1030
+Subject: [PATCH 5/6] add block comment with error
+
+---
+ main.go | 5 +++++
+ 1 file changed, 5 insertions(+)
+
+diff --git a/main.go b/main.go
+index d74ba56..8ad6e30 100644
+--- a/main.go
++++ b/main.go
+@@ -3,5 +3,10 @@ package main
+ import "fmt"
+ 
+ func main() {
++	/*
++		A bwnch of text with an
++		errroooor in the middle
++		of it.
++	*/
+ 	fmt.Println("Hulloo, Wurld!")
+ }
+-- 
+2.17.1
+
+-- 0006-make-comment-block-accurate.patch --
+From 2559103510b8baeadc58066a1586d400be3a7f2a Mon Sep 17 00:00:00 2001
+From: Nobody <nobody@nowhere.org>
+Date: Sun, 27 Feb 2022 15:33:30 +1030
+Subject: [PATCH 6/6] make comment block accurate
+
+---
+ main.go | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/main.go b/main.go
+index 8ad6e30..7616dab 100644
+--- a/main.go
++++ b/main.go
+@@ -4,7 +4,7 @@ import "fmt"
+ 
+ func main() {
+ 	/*
+-		A bwnch of text with an
++		A bunch of text with an
+ 		errroooor in the middle
+ 		of it.
+ 	*/
+-- 
+2.17.1
+
