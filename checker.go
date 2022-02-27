@@ -30,6 +30,8 @@ type checker struct {
 	camel      camel.Splitter
 	heuristics []heuristic
 
+	changeFilter changeFilter
+
 	config
 
 	misspellings []misspelling
@@ -83,6 +85,13 @@ func newChecker(d *dictionary, cfg config) (*checker, error) {
 		}
 		c.heuristics = append(c.heuristics, p)
 	}
+	if c.since != "" {
+		new, err := gitAdditionsSince(c.since, c.DiffContext)
+		if err != nil {
+			return nil, err
+		}
+		c.changeFilter = new
+	}
 
 	return c, nil
 }
@@ -96,6 +105,10 @@ func (c *checker) check(text string, node ast.Node, where string) (ok bool) {
 
 	var words []misspelled
 	for sc.Scan() {
+		if !c.changeFilter.isInChange(node.Pos()+token.Pos(w.current.pos), c.fileset) {
+			continue
+		}
+
 		word := sc.Text()
 
 		// Remove common suffixes from words.

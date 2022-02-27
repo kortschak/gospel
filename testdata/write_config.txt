@@ -23,6 +23,7 @@ camel = true
 max_word_len = 30
 min_naked_hex = 8
 suggest = 0
+diff_context = 0
 
 [entropy_filter]
   filter = false
