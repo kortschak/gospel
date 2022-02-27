@@ -49,6 +49,7 @@ type config struct {
 	IgnoreUpper     bool          `toml:"ignore_upper"`   // ignore words that are all uppercase.
 	IgnoreSingle    bool          `toml:"ignore_single"`  // ignore words that are a single rune.
 	IgnoreNumbers   bool          `toml:"ignore_numbers"` // ignore Go syntax number literals.
+	MaskFlags       bool          `toml:"mask_flags"`     // ignore words with a leading dash.
 	MaskURLs        bool          `toml:"mask_urls"`      // mask URLs before checking.
 	CamelSplit      bool          `toml:"camel"`          // split words on camelCase when retrying.
 	MaxWordLen      int           `toml:"max_word_len"`   // ignore words longer than this.
@@ -77,6 +78,7 @@ var defaults = config{
 	IgnoreUpper:     true,
 	IgnoreSingle:    true,
 	IgnoreNumbers:   true,
+	MaskFlags:       false,
 	MaskURLs:        true,
 	CamelSplit:      true,
 	MaxWordLen:      40,
@@ -127,6 +129,7 @@ func gospel() (status int) {
 	flag.BoolVar(&config.IgnoreUpper, "ignore-upper", config.IgnoreUpper, "ignore all-uppercase words")
 	flag.BoolVar(&config.IgnoreSingle, "ignore-single", config.IgnoreSingle, "ignore single letter words")
 	flag.BoolVar(&config.IgnoreNumbers, "ignore-numbers", config.IgnoreNumbers, "ignore Go syntax number literals")
+	flag.BoolVar(&config.MaskFlags, "mask-flags", config.MaskFlags, "ignore words with a leading dash")
 	flag.BoolVar(&config.MaskURLs, "mask-urls", config.MaskURLs, "mask URLs in text")
 	flag.BoolVar(&config.CamelSplit, "camel", config.CamelSplit, "split words on camel case")
 	flag.BoolVar(&config.EntropyFiler.Filter, "entropy-filter", config.EntropyFiler.Filter, "filter strings by entropy")

@@ -1,0 +1,43 @@
+# Show flags are ignored when requested.
+
+! gospel -mask-flags=false
+! stderr .
+cmp stdout expected_output_noignore_flags
+
+! gospel -mask-flags=true
+! stderr .
+cmp stdout expected_output_ignore_flags
+
+-- go.mod --
+module dummy
+-- main.go --
+package main
+
+//go:generate make --jobserver-fds
+//go:generate tool --nahsty_flaag
+//go:generate stringer -type token -linecomment -trimprefix _
+
+type token uint32
+
+// Don't allow misspelled-woords to get past the filter. Some
+// people hyphenate with two dashes, wrong--behaviour.
+func main() {
+}
+-- expected_output_noignore_flags --
+main.go:3:22: "jobserver" is misspelled in comment
+main.go:3:32: "fds" is misspelled in comment
+main.go:4:22: "nahsty_flaag" is misspelled in comment
+main.go:5:37: "linecomment" is misspelled in comment
+main.go:5:50: "trimprefix" is misspelled in comment
+	//go:generate make --[31;1;3mjobserver[0m-[31;1;3mfds[0m
+	//go:generate tool --[31;1;3mnahsty_flaag[0m
+	//go:generate stringer -type token -[31;1;3mlinecomment[0m -[31;1;3mtrimprefix[0m _
+main.go:9:27: "woords" is misspelled in comment
+main.go:10:45: "behaviour" is misspelled in comment
+	// Don't allow misspelled-[31;1;3mwoords[0m to get past the filter. Some
+	// people hyphenate with two dashes, wrong--[31;1;3mbehaviour[0m.
+-- expected_output_ignore_flags --
+main.go:9:27: "woords" is misspelled in comment
+main.go:10:45: "behaviour" is misspelled in comment
+	// Don't allow misspelled-[31;1;3mwoords[0m to get past the filter. Some
+	// people hyphenate with two dashes, wrong--[31;1;3mbehaviour[0m.

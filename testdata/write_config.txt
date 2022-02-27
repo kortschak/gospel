@@ -18,6 +18,7 @@ check_strings = false
 ignore_upper = true
 ignore_single = true
 ignore_numbers = true
+mask_flags = false
 mask_urls = true
 camel = true
 max_word_len = 30

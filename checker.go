@@ -13,6 +13,7 @@ import (
 	"math"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strconv"
 	"strings"
 	"unicode"
@@ -156,17 +157,30 @@ func rel(path string) string {
 	return rel
 }
 
-// urls is used for masking URLs in check.
-var urls = xurls.Strict()
+var (
+	// urls is used for masking URLs in check.
+	urls = xurls.Strict()
+
+	// flags is used for masking flags in check.
+	flags = regexp.MustCompile(`(?:^|\s)(?:-{1,2}\w+)+\b`)
+)
 
 // textReader returns an io.Reader containing the provided text conditioned
 // according to the configuration.
 func (c *checker) textReader(text string) io.Reader {
 	if c.MaskURLs {
-		masked := urls.ReplaceAllStringFunc(text, func(s string) string {
+		text = urls.ReplaceAllStringFunc(text, func(s string) string {
 			return strings.Repeat(" ", len(s))
 		})
-		return strings.NewReader(masked)
+	}
+	if c.MaskFlags {
+		text = flags.ReplaceAllStringFunc(text, func(s string) string {
+			// We don't have a \b for boundaries with dash
+			// so we may be replacing a space-class rune
+			// here with a space. This doesn't matter since
+			// we are scanning this text.
+			return strings.Repeat(" ", len(s))
+		})
 	}
 	return strings.NewReader(text)
 }
