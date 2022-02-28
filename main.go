@@ -9,13 +9,10 @@
 package main
 
 import (
-	"errors"
 	"flag"
 	"fmt"
 	"go/ast"
-	"io/fs"
 	"os"
-	"path/filepath"
 	"strings"
 
 	"github.com/BurntSushi/toml"
@@ -32,87 +29,6 @@ const (
 	directiveError // Currently unused. This will be for linting directives.
 	spellingError
 )
-
-// Suggestion behaviour.
-const (
-	never  = 0
-	once   = 1
-	always = 2
-)
-
-// config holds application-wide user configuration values.
-type config struct {
-	IgnoreIdents    bool          `toml:"ignore_idents"`  // ignore words matching identifiers.
-	Lang            string        `toml:"lang"`           // language to use.
-	Show            bool          `toml:"show"`           // show the context of a misspelling.
-	CheckStrings    bool          `toml:"check_strings"`  // check string literals as well as comments.
-	IgnoreUpper     bool          `toml:"ignore_upper"`   // ignore words that are all uppercase.
-	IgnoreSingle    bool          `toml:"ignore_single"`  // ignore words that are a single rune.
-	IgnoreNumbers   bool          `toml:"ignore_numbers"` // ignore Go syntax number literals.
-	MaskFlags       bool          `toml:"mask_flags"`     // ignore words with a leading dash.
-	MaskURLs        bool          `toml:"mask_urls"`      // mask URLs before checking.
-	CamelSplit      bool          `toml:"camel"`          // split words on camelCase when retrying.
-	MaxWordLen      int           `toml:"max_word_len"`   // ignore words longer than this.
-	MinNakedHex     int           `toml:"min_naked_hex"`  // ignore words at least this long if only hex digits.
-	Patterns        []string      `toml:"patterns"`       // acceptable words defined by regexp.
-	MakeSuggestions int           `toml:"suggest"`        // make suggestions for misspelled words.
-	DiffContext     int           `toml:"diff_context"`   // specify number of lines of change context to include.
-	EntropyFiler    entropyFilter `toml:"entropy_filter"` // specify entropy filter behaviour (experimental).
-
-	since  string
-	words  string
-	paths  string
-	update bool
-}
-
-var defaults = config{
-	// Dictionary options.
-	IgnoreIdents: true,
-	Lang:         "en_US",
-
-	paths: path,
-
-	// Checker options.
-	Show:            true,
-	CheckStrings:    false,
-	IgnoreUpper:     true,
-	IgnoreSingle:    true,
-	IgnoreNumbers:   true,
-	MaskFlags:       false,
-	MaskURLs:        true,
-	CamelSplit:      true,
-	MaxWordLen:      40,
-	MinNakedHex:     8,
-	MakeSuggestions: never,
-	DiffContext:     0,
-
-	// Experimental options.
-	EntropyFiler: entropyFilter{
-		Filter:         false,
-		MinLenFiltered: 16,
-		Accept:         intRange{Low: 14, High: 20},
-	},
-}
-
-// entropyFilter specifies behaviour of the entropy filter.
-type entropyFilter struct {
-	Filter bool `toml:"filter"`
-
-	// MinLenFiltered is the shorted text
-	// length that will be considered by
-	// the entropy filter.
-	MinLenFiltered int `toml:"min_len_filtered"`
-
-	// Accept is the range of effective
-	// alphabet sizes that are acceptable.
-	Accept intRange `toml:"accept"`
-}
-
-// intRange is an int interval.
-type intRange struct {
-	Low  int `toml:"low"`
-	High int `toml:"high"`
-}
 
 func gospel() (status int) {
 	config, status, err := loadConfig()
@@ -271,62 +187,4 @@ change in behaviour in future versions.
 	}
 
 	return status
-}
-
-const configFile = ".gospel.conf"
-
-// loadConfig returns a config if one can be found in the root of the
-// current module. It also returns a status and error for user information.
-func loadConfig() (_ config, status int, err error) {
-	// Using to the flag package to get this information early results
-	// in horrific convolutions, and while it works, it is sludgy. So
-	// do the work ourselves.
-	useConfig := true // Default to true.
-	args := os.Args[1:]
-loop:
-	for _, arg := range args {
-		if strings.HasPrefix(arg, "--") {
-			arg = arg[1:]
-		}
-		if !strings.HasPrefix(arg, "-config") {
-			continue
-		}
-		val := strings.TrimPrefix(arg, "-config")
-		switch val {
-		case "", "=true":
-			useConfig = true
-			break loop
-		case "=false":
-			useConfig = false
-			break loop
-		default:
-			// Let command-line flag parser handle this.
-			return config{}, success, nil
-		}
-	}
-	if !useConfig {
-		return defaults, success, nil
-	}
-
-	cfg := &packages.Config{Mode: packages.NeedModule}
-	pkgs, err := packages.Load(cfg, ".")
-	if err != nil {
-		// Can't find module, but we may have been asked for other
-		// things, so if there are errors, let the actual package
-		// loader find then.
-		return defaults, success, nil
-	}
-	mod := pkgs[0].Module
-	if mod == nil {
-		return defaults, success, nil
-	}
-
-	_, err = toml.DecodeFile(filepath.Join(mod.Dir, configFile), &defaults)
-	if err != nil {
-		if errors.Is(err, fs.ErrNotExist) {
-			return defaults, success, nil
-		}
-		return config{}, invocationError, err
-	}
-	return defaults, success, nil
 }
