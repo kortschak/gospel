@@ -53,22 +53,22 @@ main.go:6:4: "coloured" is misspelled in comment
 main.go:10:4: "coloured" is misspelled in comment
 main.go:10:13: "coloured" is misspelled in comment
 -- expected_noshow_suggest_one --
-main.go:6:4: "coloured" is misspelled in comment (suggest: colored, co loured, co-loured)
+main.go:6:4: "coloured" is misspelled in comment (suggest: colored, co loured, co-loured, couriered)
 main.go:10:4: "coloured" is misspelled in comment
 main.go:10:13: "coloured" is misspelled in comment
 -- expected_noshow_suggest_always --
-main.go:6:4: "coloured" is misspelled in comment (suggest: colored, co loured, co-loured)
-main.go:10:4: "coloured" is misspelled in comment (suggest: colored, co loured, co-loured)
-main.go:10:13: "coloured" is misspelled in comment (suggest: colored, co loured, co-loured)
+main.go:6:4: "coloured" is misspelled in comment (suggest: colored, co loured, co-loured, couriered)
+main.go:10:4: "coloured" is misspelled in comment (suggest: colored, co loured, co-loured, couriered)
+main.go:10:13: "coloured" is misspelled in comment (suggest: colored, co loured, co-loured, couriered)
 -- expected_show_suggest_one --
-main.go:6:4: "coloured" is misspelled in comment (suggest: [32;1;3mcolored[0m, [32;1;3mco loured[0m, [32;1;3mco-loured[0m)
+main.go:6:4: "coloured" is misspelled in comment (suggest: [32;1;3mcolored[0m, [32;1;3mco loured[0m, [32;1;3mco-loured[0m, [32;1;3mcouriered[0m)
 	// [31;1;3mcoloured[0m
 main.go:10:4: "coloured" is misspelled in comment
 main.go:10:13: "coloured" is misspelled in comment
 	// [31;1;3mcoloured[0m [31;1;3mcoloured[0m
 -- expected_show_suggest_always --
-main.go:6:4: "coloured" is misspelled in comment (suggest: [32;1;3mcolored[0m, [32;1;3mco loured[0m, [32;1;3mco-loured[0m)
+main.go:6:4: "coloured" is misspelled in comment (suggest: [32;1;3mcolored[0m, [32;1;3mco loured[0m, [32;1;3mco-loured[0m, [32;1;3mcouriered[0m)
 	// [31;1;3mcoloured[0m
-main.go:10:4: "coloured" is misspelled in comment (suggest: [32;1;3mcolored[0m, [32;1;3mco loured[0m, [32;1;3mco-loured[0m)
-main.go:10:13: "coloured" is misspelled in comment (suggest: [32;1;3mcolored[0m, [32;1;3mco loured[0m, [32;1;3mco-loured[0m)
+main.go:10:4: "coloured" is misspelled in comment (suggest: [32;1;3mcolored[0m, [32;1;3mco loured[0m, [32;1;3mco-loured[0m, [32;1;3mcouriered[0m)
+main.go:10:13: "coloured" is misspelled in comment (suggest: [32;1;3mcolored[0m, [32;1;3mco loured[0m, [32;1;3mco-loured[0m, [32;1;3mcouriered[0m)
 	// [31;1;3mcoloured[0m [31;1;3mcoloured[0m
