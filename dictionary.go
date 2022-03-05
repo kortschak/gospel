@@ -10,12 +10,14 @@ import (
 	"go/ast"
 	"go/token"
 	"go/types"
+	"io"
 	"io/fs"
 	"os"
 	"path/filepath"
 	"sort"
 	"strings"
 	"unicode"
+	"unicode/utf8"
 
 	"github.com/kortschak/hunspell"
 	"golang.org/x/tools/go/packages"
@@ -47,7 +49,11 @@ func newDictionary(pkgs []*packages.Package, cfg config) (*dictionary, error) {
 		d.misspelled = make(map[string]bool)
 	}
 
-	var err error
+	var (
+		ook      librarian
+		aff, dic string
+		err      error
+	)
 	for _, p := range filepath.SplitList(d.paths) {
 		if strings.HasPrefix(p, "~"+string(filepath.Separator)) {
 			dir, err := os.UserHomeDir()
@@ -56,32 +62,25 @@ func newDictionary(pkgs []*packages.Package, cfg config) (*dictionary, error) {
 			}
 			p = filepath.Join(dir, p[2:])
 		}
-		d.Spell, err = hunspell.NewSpell(p, cfg.Lang)
+		aff, dic, err = hunspell.Paths(p, cfg.Lang)
+		if err != nil {
+			return nil, fmt.Errorf("could not find dictionary: %v", err)
+		}
+		ook, err = newLibrarian(aff, dic)
 		if err == nil {
+			for _, w := range knownWords {
+				err = ook.addWord(w)
+				if err != nil {
+					return nil, fmt.Errorf("%w in internal dictionary", err)
+				}
+			}
 			break
 		}
 	}
-	if d.Spell == nil {
+	if ook.rules == nil {
 		return nil, fmt.Errorf("no %s dictionary found in: %v", d.Lang, d.paths)
 	}
 
-	// Load known words as a dictionary. This requires a write to
-	// disk since hunspell does not allow dictionaries to be loaded
-	// from memory, and affix rules can't be provided directly.
-	kw, err := os.CreateTemp("", "gospel")
-	if err != nil {
-		return nil, fmt.Errorf("failed to create known words dictionary: %v", err)
-	} else {
-		defer os.Remove(kw.Name())
-		fmt.Fprintln(kw, len(knownWords))
-		for _, w := range knownWords {
-			fmt.Fprintln(kw, w)
-		}
-		err := d.AddDict(kw.Name())
-		if err != nil {
-			return nil, err
-		}
-	}
 	// Load any dictionaries that exist in well known locations
 	// at module roots. We do not do this when we are outputting
 	// a misspelling list since the list will be incomplete unless
@@ -96,11 +95,38 @@ func newDictionary(pkgs []*packages.Package, cfg config) (*dictionary, error) {
 			d.roots[p.Module.Dir] = true
 		}
 		for r := range d.roots {
-			err := d.AddDict(filepath.Join(r, ".words"))
+			err := ook.addDictionary(filepath.Join(r, ".words"))
 			if _, ok := err.(*os.PathError); !ok && err != nil {
 				return nil, err
 			}
 		}
+	}
+
+	// Load known words as a dictionary. This requires a write to
+	// disk since hunspell does not allow dictionaries to be loaded
+	// from memory, and affix rules can't be provided directly.
+	kw, err := os.CreateTemp("", "gospel")
+	if err != nil {
+		return nil, fmt.Errorf("failed to create known words dictionary: %v", err)
+	}
+	defer func() {
+		// In case we fail the write, close the file to allow
+		// intransigent operating systems to delete it.
+		kw.Close()
+		os.Remove(kw.Name())
+	}()
+	err = ook.writeTo(kw)
+	if err != nil {
+		return nil, fmt.Errorf("failed to write known words dictionary: %v", err)
+	}
+	dic = kw.Name()
+	err = kw.Close()
+	if err != nil {
+		return nil, fmt.Errorf("failed to write known words dictionary: %v", err)
+	}
+	d.Spell, err = hunspell.NewSpellPaths(aff, dic)
+	if err != nil {
+		return nil, fmt.Errorf("could not open dictionary: %v", err)
 	}
 
 	if cfg.IgnoreIdents {
@@ -295,4 +321,119 @@ func (a *adder) addWordUnknownWord(w string, countable bool) {
 	if !ok {
 		a.failed++
 	}
+}
+
+// a librarian collates dictionaries.
+type librarian struct {
+	rules map[string]string
+}
+
+// newLibrarian returns a new librarian populated with words and affix rules
+// obtained from the hunspell .dic file paths provided, checking that the
+// affix file aff also exists.
+func newLibrarian(aff, dic string) (librarian, error) {
+	_, err := os.Stat(aff)
+	if err != nil {
+		return librarian{}, err
+	}
+	l := librarian{make(map[string]string)}
+	err = l.addDictionary(dic)
+	if err != nil {
+		return librarian{}, err
+	}
+	return l, nil
+}
+
+// addDictionary adds word rules from the hunspell dictionary at the given
+// path.
+func (l librarian) addDictionary(path string) error {
+	f, err := os.Open(path)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	sc := bufio.NewScanner(f)
+	for i := 0; sc.Scan(); i++ {
+		if i == 0 {
+			// Skip word count line.
+			continue
+		}
+		err := l.addWord(sc.Text())
+		if err != nil {
+			return fmt.Errorf("%w at %s:%d", err, path, i+1)
+		}
+	}
+	return sc.Err()
+}
+
+// addWord adds the provided word to the librarian's dictionary merging any
+// affix rules into those already existing for the word.
+func (l librarian) addWord(w string) error {
+	r := strings.Split(w, "/")
+	word := r[0]
+	if word == "" {
+		// This should never happen, but we can ignore it.
+		return nil
+	}
+	var affix string
+	switch len(r) {
+	case 1:
+	case 2:
+		affix = r[1]
+	default:
+		return fmt.Errorf("invalid dictionary entry %q", w)
+	}
+	l.rules[word] = mergeRules(l.rules[word], affix)
+	return nil
+}
+
+// mergeRules merges affix rules.
+func mergeRules(a, b string) string {
+	switch {
+	case a == "":
+		return b
+	case b == "":
+		return a
+	default:
+		r := make([]rune, 0, utf8.RuneCountInString(a)+utf8.RuneCountInString(b))
+		r = append(r, []rune(a)...)
+		r = append(r, []rune(b)...)
+		sort.Slice(r, func(i, j int) bool { return r[i] < r[j] })
+		curr := 0
+		for i, e := range r {
+			if e == r[curr] {
+				continue
+			}
+			curr++
+			if curr < i {
+				r[curr], r[i] = r[i], 0
+			}
+		}
+		return string(r[:curr+1])
+	}
+}
+
+// writeTo writes the word rules in the librarian to the provided io.Writer
+// in hunspell .dic format.
+func (l librarian) writeTo(w io.Writer) error {
+	dict := make([]string, 0, len(l.rules))
+	for w, r := range l.rules {
+		if r != "" {
+			dict = append(dict, w+"/"+r)
+		} else {
+			dict = append(dict, w)
+		}
+	}
+	_, err := fmt.Fprintln(w, len(dict))
+	if err != nil {
+		return fmt.Errorf("failed to write new dictionary: %v", err)
+	}
+	// We don't sort here since it's for immediate consumption by hunspell.
+	for _, r := range dict {
+		_, err = fmt.Fprintln(w, r)
+		if err != nil {
+			return fmt.Errorf("failed to write new dictionary: %v", err)
+		}
+	}
+	return nil
 }

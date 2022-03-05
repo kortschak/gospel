@@ -18,7 +18,7 @@ require (
 )
 
 require (
-	github.com/kortschak/hunspell v0.0.0-20220130032629-3553eecdf4e7
+	github.com/kortschak/hunspell v0.0.0-20220305030544-5d8374a03860
 	golang.org/x/mod v0.4.2 // indirect
 	golang.org/x/sys v0.0.0-20210510120138-977fb7262007
 	golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1 // indirect
