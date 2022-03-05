@@ -47,6 +47,7 @@ func gospel() (status int) {
 	flag.BoolVar(&config.IgnoreNumbers, "ignore-numbers", config.IgnoreNumbers, "ignore Go syntax number literals")
 	flag.BoolVar(&config.MaskFlags, "mask-flags", config.MaskFlags, "ignore words with a leading dash")
 	flag.BoolVar(&config.MaskURLs, "mask-urls", config.MaskURLs, "mask URLs in text")
+	flag.BoolVar(&config.CheckURLs, "check-urls", config.CheckURLs, "check URLs in text with HEAD request")
 	flag.BoolVar(&config.CamelSplit, "camel", config.CamelSplit, "split words on camel case")
 	flag.BoolVar(&config.EntropyFiler.Filter, "entropy-filter", config.EntropyFiler.Filter, "filter strings by entropy")
 	flag.IntVar(&config.MinNakedHex, "min-naked-hex", config.MinNakedHex, "length to recognize hex-digit words as number (0 is never ignore)")

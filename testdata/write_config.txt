@@ -20,6 +20,7 @@ ignore_single = true
 ignore_numbers = true
 mask_flags = false
 mask_urls = true
+check_urls = false
 camel = true
 max_word_len = 30
 min_naked_hex = 8
