@@ -39,6 +39,10 @@ type dictionary struct {
 
 	// roots is the set of module roots.
 	roots map[string]bool
+
+	// ignoredURLs is the set of URLs to omit from checking
+	// target validity.
+	ignoredURLs map[string]bool
 }
 
 // newDictionary returns a new dictionary based on the provided packages
@@ -47,6 +51,9 @@ func newDictionary(pkgs []*packages.Package, cfg config) (*dictionary, error) {
 	d := dictionary{config: cfg}
 	if d.words != "" {
 		d.misspelled = make(map[string]bool)
+	}
+	if d.CheckURLs {
+		d.ignoredURLs = make(map[string]bool)
 	}
 
 	var (
@@ -128,6 +135,12 @@ func newDictionary(pkgs []*packages.Package, cfg config) (*dictionary, error) {
 	if err != nil {
 		return nil, fmt.Errorf("could not open dictionary: %v", err)
 	}
+
+	// Get URLs if we are ignoring them.
+	if d.CheckURLs {
+		d.ignoredURLs = ook.urls
+	}
+	ook.urls = nil
 
 	if cfg.IgnoreIdents {
 		err = addIdentifiers(d.Spell, pkgs, make(map[string]bool))
@@ -326,6 +339,7 @@ func (a *adder) addWordUnknownWord(w string, countable bool) {
 // a librarian collates dictionaries.
 type librarian struct {
 	rules map[string]string
+	urls  map[string]bool
 }
 
 // newLibrarian returns a new librarian populated with words and affix rules
@@ -336,7 +350,10 @@ func newLibrarian(aff, dic string) (librarian, error) {
 	if err != nil {
 		return librarian{}, err
 	}
-	l := librarian{make(map[string]string)}
+	l := librarian{
+		rules: make(map[string]string),
+		urls:  make(map[string]bool),
+	}
 	err = l.addDictionary(dic)
 	if err != nil {
 		return librarian{}, err
@@ -381,6 +398,10 @@ func (l librarian) addWord(w string) error {
 	case 2:
 		affix = r[1]
 	default:
+		if urls.MatchString(w) {
+			l.urls[w] = true
+			return nil
+		}
 		return fmt.Errorf("invalid dictionary entry %q", w)
 	}
 	l.rules[word] = mergeRules(l.rules[word], affix)

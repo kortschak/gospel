@@ -11,6 +11,8 @@ import (
 	"go/token"
 	"io"
 	"math"
+	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -100,11 +102,16 @@ func newChecker(d *dictionary, cfg config) (*checker, error) {
 // check checks the provided text and outputs information about any misspellings
 // in the text.
 func (c *checker) check(text string, node ast.Node, where string) (ok bool) {
+	var misspellings []misspelled
+
+	if c.CheckURLs {
+		misspellings = c.confirmURLtargets(misspellings, text, node)
+	}
+
 	sc := bufio.NewScanner(c.textReader(text))
 	w := words{}
 	sc.Split(w.ScanWords)
 
-	var words []misspelled
 	for sc.Scan() {
 		if !c.changeFilter.isInChange(node.Pos()+token.Pos(w.current.pos), c.fileset) {
 			continue
@@ -130,18 +137,23 @@ func (c *checker) check(text string, node ast.Node, where string) (ok bool) {
 		if c.isCorrect(stripUnderscores(word), false) {
 			continue
 		}
-		words = append(words, misspelled{word: word, span: w.current})
+		misspellings = append(misspellings, misspelled{
+			word:    word,
+			span:    w.current,
+			note:    "misspelled",
+			suggest: true,
+		})
 	}
-	if len(words) != 0 {
+	if len(misspellings) != 0 {
 		c.misspellings = append(c.misspellings, misspelling{
-			words: words,
+			words: misspellings,
 			where: where,
 			text:  text,
 			pos:   c.fileset.Position(node.Pos()),
 			end:   c.fileset.Position(node.End()),
 		})
 	}
-	return len(words) == 0
+	return len(misspellings) == 0
 }
 
 // rel returns the wd-relative path for the input if possible.
@@ -183,6 +195,58 @@ func (c *checker) textReader(text string) io.Reader {
 		})
 	}
 	return strings.NewReader(text)
+}
+
+// confirmURLtargets fills and returns dst with a list of unreachable URL
+// targets with the HTTP status or error reasons included.
+func (c *checker) confirmURLtargets(dst []misspelled, text string, node ast.Node) []misspelled {
+	for _, idx := range urls.FindAllStringIndex(text, -1) {
+		if !c.changeFilter.isInChange(node.Pos()+token.Pos(idx[0]), c.fileset) {
+			continue
+		}
+		u := text[idx[0]:idx[1]]
+		if c.dictionary.ignoredURLs[u] {
+			continue
+		}
+		parsed, err := url.Parse(u)
+		if err != nil {
+			continue
+		}
+		switch parsed.Scheme {
+		case "http", "https":
+		default:
+			continue
+		}
+		// While servers may treat GET and HEAD differently, resulting
+		// in false positives and negatives, use of HEAD is justified by
+		// https://datatracker.ietf.org/doc/html/rfc2616/#section-9.4.
+		//
+		//  This method is often used for testing hypertext links for
+		//  validity, accessibility, and recent modification.
+		//
+		resp, err := http.Head(u)
+		if err != nil {
+			dst = append(dst, misspelled{
+				word: u,
+				span: span{pos: idx[0], end: idx[1]},
+				note: fmt.Sprintf("unreachable (%v)", err),
+			})
+			c.dictionary.noteMisspelling(u)
+			continue
+		}
+		io.Copy(io.Discard, resp.Body)
+		resp.Body.Close()
+		switch statusClass := resp.StatusCode / 100; statusClass {
+		case 4, 5:
+			dst = append(dst, misspelled{
+				word: u,
+				span: span{pos: idx[0], end: idx[1]},
+				note: fmt.Sprintf("unreachable (%v)", resp.Status),
+			})
+			c.dictionary.noteMisspelling(u)
+		}
+	}
+	return dst
 }
 
 // empty is a word suggestion sentinel indicating that previous suggestion

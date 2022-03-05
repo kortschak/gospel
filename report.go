@@ -22,8 +22,10 @@ type misspelling struct {
 
 // misspelled is a misspelled word and its span.
 type misspelled struct {
-	word string
-	span span
+	word    string
+	span    span
+	note    string
+	suggest bool
 }
 
 // adjacent returns whether the receiver is on an adjacent line to
@@ -67,9 +69,9 @@ func (c *checker) report() {
 		for _, l := range chunk {
 			for _, w := range l.words {
 				p := l.pos
-				fmt.Printf("%v:%d:%d: %q is misspelled in %s", rel(p.Filename), p.Line, p.Column+w.span.pos, w.word, l.where)
+				fmt.Printf("%v:%d:%d: %q is %s in %s", rel(p.Filename), p.Line, p.Column+w.span.pos, w.word, w.note, l.where)
 
-				if c.MakeSuggestions == always || (c.MakeSuggestions == once && c.suggested[w.word] == nil) {
+				if w.suggest && (c.MakeSuggestions == always || (c.MakeSuggestions == once && c.suggested[w.word] == nil)) {
 					suggestions, ok := c.suggested[w.word]
 					if !ok {
 						suggestions = c.dictionary.Suggest(w.word)

@@ -1,0 +1,27 @@
+# Show URLs can be checked for target validity.
+
+! gospel -show=false -check-urls=true -misspellings=words -update-dict=true
+! stderr .
+cmp stdout expected_output_unmasked
+cmp words expected_words
+
+gospel -show=false -check-urls=false
+! stdout .
+! stderr .
+
+-- go.mod --
+module dummy
+-- dummy.go --
+package dummy
+
+// http://www.example.com/ works but http://www.example.com/404
+// doesn't. http://www.example.com/borked is excluded from checks.
+-- .words --
+1
+http://www.example.com/borked
+-- expected_output_unmasked --
+dummy.go:3:38: "http://www.example.com/404" is unreachable (404 Not Found) in comment
+-- expected_words --
+2
+http://www.example.com/404
+http://www.example.com/borked

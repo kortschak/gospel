@@ -33,6 +33,7 @@ type config struct {
 	IgnoreNumbers   bool          `toml:"ignore_numbers"` // ignore Go syntax number literals.
 	MaskFlags       bool          `toml:"mask_flags"`     // ignore words with a leading dash.
 	MaskURLs        bool          `toml:"mask_urls"`      // mask URLs before checking.
+	CheckURLs       bool          `toml:"check_urls"`     // check URLs point to reachable targets.
 	CamelSplit      bool          `toml:"camel"`          // split words on camelCase when retrying.
 	MaxWordLen      int           `toml:"max_word_len"`   // ignore words longer than this.
 	MinNakedHex     int           `toml:"min_naked_hex"`  // ignore words at least this long if only hex digits.
@@ -62,6 +63,7 @@ var defaults = config{
 	IgnoreNumbers:   true,
 	MaskFlags:       false,
 	MaskURLs:        true,
+	CheckURLs:       false,
 	CamelSplit:      true,
 	MaxWordLen:      40,
 	MinNakedHex:     8,
