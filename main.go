@@ -42,6 +42,7 @@ func gospel() (status int) {
 	flag.StringVar(&config.Lang, "lang", config.Lang, "language to use")
 	flag.BoolVar(&config.Show, "show", config.Show, "print comment or string with misspellings")
 	flag.BoolVar(&config.CheckStrings, "check-strings", config.CheckStrings, "check string literals")
+	flag.BoolVar(&config.CheckEmbedded, "check-embedded", config.CheckEmbedded, "check embedded data files")
 	flag.BoolVar(&config.IgnoreUpper, "ignore-upper", config.IgnoreUpper, "ignore all-uppercase words")
 	flag.BoolVar(&config.IgnoreSingle, "ignore-single", config.IgnoreSingle, "ignore single letter words")
 	flag.BoolVar(&config.IgnoreNumbers, "ignore-numbers", config.IgnoreNumbers, "ignore Go syntax number literals")
@@ -174,6 +175,25 @@ change in behaviour in future versions.
 					lastOK = ok
 				}
 			}
+		}
+	}
+	if c.CheckEmbedded {
+		// TODO(kortschak): Remove this and use packages.Load
+		// when https:///go.dev/issue/50720 is resolved.
+		embedded, err := embedFiles(flag.Args())
+		if err != nil {
+			fmt.Fprintf(os.Stdout, "could not get embedded files list: %v", err)
+			return internalError
+		}
+		const maxLineLen = 120 // TODO(kortschak): Consider making this configurable.
+		for _, path := range embedded {
+			e, err := loadEmbedded(path, maxLineLen)
+			if err != nil {
+				fmt.Fprintf(os.Stdout, "could not read embedded file: %v", err)
+				return internalError
+			}
+			c.fileset = e
+			c.check(e.Text(), e, "embedded file")
 		}
 	}
 	if d.misspellings != 0 {

@@ -27,7 +27,7 @@ import (
 
 // checker implements an AST-walking spell checker.
 type checker struct {
-	fileset *token.FileSet
+	fileset positioner
 
 	dictionary *dictionary
 	camel      camel.Splitter
@@ -45,6 +45,11 @@ type checker struct {
 	warn func(...interface{}) fmt.Formatter
 	// suggest is the decoration for suggested words.
 	suggest func(...interface{}) fmt.Formatter
+}
+
+// positioner is an abstraction of the token.FileSet Position method.
+type positioner interface {
+	Position(token.Pos) token.Position
 }
 
 // newChecker returns a new spelling checker using the provided spelling
