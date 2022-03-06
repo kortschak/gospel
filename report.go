@@ -69,7 +69,11 @@ func (c *checker) report() {
 		for _, l := range chunk {
 			for _, w := range l.words {
 				p := l.pos
-				fmt.Printf("%v:%d:%d: %q is %s in %s", rel(p.Filename), p.Line, p.Column+w.span.pos, w.word, w.note, l.where)
+				if p.IsValid() {
+					fmt.Printf("%v:%d:%d: %q is %s in %s", rel(p.Filename), p.Line, p.Column+w.span.pos, w.word, w.note, l.where)
+				} else {
+					fmt.Printf("%v@%d: %q is %s in %s", rel(p.Filename), w.span.pos, w.word, w.note, l.where)
+				}
 
 				if w.suggest && (c.MakeSuggestions == always || (c.MakeSuggestions == once && c.suggested[w.word] == nil)) {
 					suggestions, ok := c.suggested[w.word]
@@ -100,6 +104,11 @@ func (c *checker) report() {
 
 		if c.Show {
 			for i, l := range chunk {
+				if !l.pos.IsValid() {
+					// Don't try to print binary embedded data.
+					continue
+				}
+
 				if len(l.words) == 0 {
 					if i == 0 || l.text != chunk[i-1].text {
 						fmt.Print(adjustIndents(l.text))

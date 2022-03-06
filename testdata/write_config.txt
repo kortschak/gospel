@@ -15,6 +15,7 @@ ignore_idents = true
 lang = "en_US"
 show = true
 check_strings = false
+check_embedded = false
 ignore_upper = true
 ignore_single = true
 ignore_numbers = true

@@ -28,6 +28,7 @@ type config struct {
 	Lang            string        `toml:"lang"`           // language to use.
 	Show            bool          `toml:"show"`           // show the context of a misspelling.
 	CheckStrings    bool          `toml:"check_strings"`  // check string literals as well as comments.
+	CheckEmbedded   bool          `toml:"check_embedded"` // check spelling in embedded files as well as comments.
 	IgnoreUpper     bool          `toml:"ignore_upper"`   // ignore words that are all uppercase.
 	IgnoreSingle    bool          `toml:"ignore_single"`  // ignore words that are a single rune.
 	IgnoreNumbers   bool          `toml:"ignore_numbers"` // ignore Go syntax number literals.
@@ -58,6 +59,7 @@ var defaults = config{
 	// Checker options.
 	Show:            true,
 	CheckStrings:    false,
+	CheckEmbedded:   false,
 	IgnoreUpper:     true,
 	IgnoreSingle:    true,
 	IgnoreNumbers:   true,

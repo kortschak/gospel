@@ -22,7 +22,7 @@ type changeFilter map[string][]lineRange
 
 // isInChange returns whether pos in in changes in the filter. If f is nil
 // all changes are included.
-func (f changeFilter) isInChange(pos token.Pos, fset *token.FileSet) bool {
+func (f changeFilter) isInChange(pos token.Pos, fset positioner) bool {
 	if f == nil {
 		return true
 	}

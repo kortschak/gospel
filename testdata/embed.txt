@@ -1,0 +1,57 @@
+# Show embedded file contents are checked when requested.
+
+gospel
+! stdout .
+! stderr .
+
+! gospel -check-embedded
+! stderr .
+cmp stdout expected_output
+
+-- go.mod --
+module dummy
+-- main.go --
+package main
+
+import "embed"
+
+//go:embed bytes_file.txt
+var bytesFile string
+
+//go:embed string_file.txt
+var stringFile string
+
+//go:embed long_lines.txt
+var longLines string
+
+//go:embed filesystem
+var filesystem embed.FS
+
+func main() {
+}
+-- expected_output --
+bytes_file.txt:1:9: "misspole" is misspelled in embedded file
+bytes_file.txt:1:23: "multipole" is misspelled in embedded file
+	This is [31;1;3mmisspole[0m over
+	[31;1;3mmultipole[0m lines.
+filesystem/b/data.txt:1:9: "fyra" is misspelled in embedded file
+	... and [31;1;3mfyra[0m.
+filesystem/data.txt:1:5: "tre" is misspelled in embedded file
+	Och [31;1;3mtre[0m.
+long_lines.txt@17: "msispelling" is misspelled in embedded file
+string_file.txt:1:9: "två" is misspelled in embedded file
+	This is [31;1;3mtvå[0m.
+-- bytes_file.txt --
+This is misspole over
+multipole lines.
+-- string_file.txt --
+This is två.
+-- filesystem/data.txt --
+Och tre.
+-- filesystem/b/data.txt --
+... and fyra.
+-- long_lines.txt --
+A text file with msispelling and no obvious non-text characters, but long lines will not be shown in the show section of the output and will be marked with a byte position rather than :line:column.
+-- .words --
+1
+txt
