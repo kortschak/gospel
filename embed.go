@@ -11,6 +11,7 @@ import (
 	"os"
 	"os/exec"
 	"sort"
+	"unicode"
 	"unicode/utf8"
 )
 
@@ -53,7 +54,7 @@ func loadEmbedded(path string, maxLineLen int) (*embedded, error) {
 	}
 	e.lines = []int{0}
 	for i, b := range e.data {
-		if neverInText[b] || i > e.lines[len(e.lines)-1]+maxLineLen {
+		if (b <= unicode.MaxASCII && neverInText[b]) || i > e.lines[len(e.lines)-1]+maxLineLen {
 			e.lines = nil
 			break
 		}
