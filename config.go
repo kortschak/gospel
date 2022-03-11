@@ -110,13 +110,15 @@ func (s *suggest) Set(val string) error {
 type entropyFilter struct {
 	Filter bool `toml:"filter"`
 
-	// MinLenFiltered is the shorted text
+	// MinLenFiltered is the shortest text
 	// length that will be considered by
 	// the entropy filter.
 	MinLenFiltered int `toml:"min_len_filtered"`
 
 	// Accept is the range of effective
-	// alphabet sizes that are acceptable.
+	// alphabet sizes that are acceptable
+	// as text that may contain words
+	// needing spell checking.
 	Accept intRange `toml:"accept"`
 }
 
