@@ -179,7 +179,7 @@ change in behaviour in future versions.
 	}
 	if c.CheckEmbedded {
 		// TODO(kortschak): Remove this and use packages.Load
-		// when https:///go.dev/issue/50720 is resolved.
+		// when https://go.dev/issue/50720 is resolved.
 		embedded, err := embedFiles(flag.Args())
 		if err != nil {
 			fmt.Fprintf(os.Stdout, "could not get embedded files list: %v", err)
