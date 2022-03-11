@@ -51,7 +51,6 @@ gendoc
 hosters
 initialisms
 pluralisation
-repo
 ```
 
 This file can also be edited to make use of more advanced hunspell

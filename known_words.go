@@ -248,6 +248,7 @@ var knownWords = []string{
 	"quicksort",
 	"readme",
 	"relocation/S",
+	"repo/MS",
 	"rescan/D",
 	"rfc",
 	"rpc/MS",
