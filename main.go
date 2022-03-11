@@ -145,6 +145,9 @@ change in behaviour in future versions.
 	for _, p := range pkgs {
 		c.fileset = p.Fset
 		for _, f := range p.Syntax {
+			if !c.changeFilter.fileIsInChange(f.Pos(), c.fileset) {
+				continue
+			}
 			if c.CheckStrings {
 				ast.Walk(c, f)
 			}
@@ -191,6 +194,9 @@ change in behaviour in future versions.
 			if err != nil {
 				fmt.Fprintf(os.Stdout, "could not read embedded file: %v", err)
 				return internalError
+			}
+			if !c.changeFilter.fileIsInChange(e.Pos(), e) {
+				continue
 			}
 			c.fileset = e
 			c.check(e.Text(), e, "embedded file")
