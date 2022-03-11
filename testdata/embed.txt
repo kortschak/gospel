@@ -39,9 +39,9 @@ filesystem/b/data.txt:1:9: "fyra" is misspelled in embedded file
 filesystem/data.txt:1:5: "tre" is misspelled in embedded file
 	Och [31;1;3mtre[0m.
 long_lines.txt@17: "msispelling" is misspelled in embedded file
-other/bytes_file.txt:1:9: "misspole" is misspelled in embedded file
-other/bytes_file.txt:1:23: "multipole" is misspelled in embedded file
-	This is [31;1;3mmisspole[0m over
+other/bytes_file_other.txt:1:9: "misspolen" is misspelled in embedded file
+other/bytes_file_other.txt:1:24: "multipole" is misspelled in embedded file
+	This is [31;1;3mmisspolen[0m over
 	[31;1;3mmultipole[0m lines.
 string_file.txt:1:9: "två" is misspelled in embedded file
 	This is [31;1;3mtvå[0m.
@@ -64,11 +64,11 @@ package main
 
 import _ "embed"
 
-//go:embed bytes_file.txt
+//go:embed bytes_file_other.txt
 var bytesFile string
 
 func main() {
 }
--- other/bytes_file.txt --
-This is misspole over
+-- other/bytes_file_other.txt --
+This is misspolen over
 multipole lines.
