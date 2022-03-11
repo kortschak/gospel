@@ -3,19 +3,19 @@
 # Uncoloured when -show=false
 
 # never show suggestions
-! gospel -show=false -suggest=0
+! gospel -show=false -suggest=never
 ! stderr .
 cmp stdout expected_noshow_nosuggest
 
 
 # show suggestion for first occurrence 
-! gospel -show=false -suggest=1
+! gospel -show=false -suggest=once
 ! stderr .
 cmp stdout expected_noshow_suggest_one
 
 
 # always show suggestions
-! gospel -show=false -suggest=2
+! gospel -show=false -suggest=always
 ! stderr .
 cmp stdout expected_noshow_suggest_always
 
@@ -23,13 +23,13 @@ cmp stdout expected_noshow_suggest_always
 # Coloured when -show=true
 
 # show suggestion for first occurrence 
-! gospel -suggest=1
+! gospel -suggest=once
 ! stderr .
 cmp stdout expected_show_suggest_one
 
 
 # always show suggestions
-! gospel -suggest=2
+! gospel -suggest=always
 ! stderr .
 cmp stdout expected_show_suggest_always
 

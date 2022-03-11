@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-//go:generate go run gendoc.go path_linux.go config.go
+//go:generate go run -tags docs gendoc.go path_linux.go suggest_string.go config.go
 
 // The gospel command finds and highlights misspelled words in Go source
 // comments, strings and embedded files. It uses hunspell to identify
@@ -46,7 +46,7 @@ func gospel() (status int) {
 	flag.BoolVar(&config.EntropyFiler.Filter, "entropy-filter", config.EntropyFiler.Filter, "filter strings and embedded files by entropy")
 	flag.IntVar(&config.MinNakedHex, "min-naked-hex", config.MinNakedHex, "length to recognize hex-digit words as number (0 is never ignore)")
 	flag.IntVar(&config.MaxWordLen, "max-word-len", config.MaxWordLen, "ignore words longer than this (0 is no limit)")
-	flag.IntVar(&config.MakeSuggestions, "suggest", config.MakeSuggestions, "make suggestions for misspellings (0 - never, 1 - first instance, 2 - always)")
+	flag.Var(&config.MakeSuggestions, "suggest", "make suggestions for misspellings (never, once, always)")
 	flag.IntVar(&config.DiffContext, "diff-context", config.DiffContext, "specify number of lines of change context to include")
 
 	// Non-persisted config options.

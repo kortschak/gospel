@@ -6,6 +6,7 @@ package main
 
 import (
 	"errors"
+	"fmt"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -22,13 +23,6 @@ const (
 	invocationError
 	directiveError // Currently unused. This will be for linting directives.
 	spellingError
-)
-
-// Suggestion behaviour.
-const (
-	never  = 0
-	once   = 1
-	always = 2
 )
 
 // config holds application-wide user configuration values.
@@ -48,7 +42,7 @@ type config struct {
 	MaxWordLen      int           `toml:"max_word_len"`   // ignore words longer than this.
 	MinNakedHex     int           `toml:"min_naked_hex"`  // ignore words at least this long if only hex digits.
 	Patterns        []string      `toml:"patterns"`       // acceptable words defined by regexp.
-	MakeSuggestions int           `toml:"suggest"`        // make suggestions for misspelled words.
+	MakeSuggestions suggest       `toml:"suggest"`        // make suggestions for misspelled words.
 	DiffContext     int           `toml:"diff_context"`   // specify number of lines of change context to include.
 	EntropyFiler    entropyFilter `toml:"entropy_filter"` // specify entropy filter behaviour (experimental).
 
@@ -87,6 +81,29 @@ var defaults = config{
 		MinLenFiltered: 16,
 		Accept:         intRange{Low: 14, High: 20},
 	},
+}
+
+// Suggestion behaviour.
+//go:generate stringer -type=suggest
+const (
+	never suggest = iota
+	once
+	always
+)
+
+type suggest int
+
+func (s suggest) MarshalText() ([]byte, error)  { return []byte(s.String()), nil }
+func (s *suggest) UnmarshalText(b []byte) error { return s.Set(string(b)) }
+
+func (s *suggest) Set(val string) error {
+	for i := never; i <= always; i++ {
+		if val == i.String() {
+			*s = i
+			return nil
+		}
+	}
+	return fmt.Errorf(`valid options are "never", "once" and "always"`)
 }
 
 // entropyFilter specifies behaviour of the entropy filter.
