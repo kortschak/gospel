@@ -2,10 +2,12 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
+//go:generate go run gendoc.go path_linux.go config.go
+
 // The gospel command finds and highlights misspelled words in Go source
-// comments and strings. It uses hunspell to identify misspellings and only
-// emits coloured output for visual inspection; don't use it in automated
-// linting.
+// comments, strings and embedded files. It uses hunspell to identify
+// misspellings and emits coloured output for visual inspection or error
+// lists for use in automated linting.
 package main
 
 import (
@@ -20,15 +22,6 @@ import (
 )
 
 func main() { os.Exit(gospel()) }
-
-// Exit status codes.
-const (
-	success       = 0
-	internalError = 1 << (iota - 1)
-	invocationError
-	directiveError // Currently unused. This will be for linting directives.
-	spellingError
-)
 
 func gospel() (status int) {
 	config, status, err := loadConfig()
@@ -89,6 +82,8 @@ camel, min-naked-hex, max-word-len and suggest.
 String literals can be filtered on the basis of entropy to exclude unexpectedly
 high or low complexity text from spell checking. This is experimental, and may
 change in behaviour in future versions.
+
+See https://github.com/kortschak/gospel for more complete documentation.
 
 `, os.Args[0])
 		flag.PrintDefaults()

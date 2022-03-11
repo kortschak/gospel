@@ -15,6 +15,15 @@ import (
 	"golang.org/x/tools/go/packages"
 )
 
+// Exit status codes.
+const (
+	success       = 0
+	internalError = 1 << (iota - 1)
+	invocationError
+	directiveError // Currently unused. This will be for linting directives.
+	spellingError
+)
+
 // Suggestion behaviour.
 const (
 	never  = 0
