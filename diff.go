@@ -20,7 +20,7 @@ import (
 // code changes.
 type changeFilter map[string][]lineRange
 
-// isInChange returns whether pos in in changes in the filter. If f is nil
+// isInChange returns whether pos is in changes in the filter. If f is nil
 // all changes are included.
 func (f changeFilter) isInChange(pos token.Pos, fset positioner) bool {
 	if f == nil {
@@ -37,6 +37,16 @@ func (f changeFilter) isInChange(pos token.Pos, fset positioner) bool {
 		}
 	}
 	return false
+}
+
+// fileIsInChange returns whether the file associated with pos is in
+// changes in the filter. If f is nil all changes are included.
+func (f changeFilter) fileIsInChange(pos token.Pos, fset positioner) bool {
+	if f == nil {
+		return true
+	}
+	_, ok := f[rel(fset.Position(pos).Filename)]
+	return ok
 }
 
 // lineRange is a range of lines in a file, [start,end].
