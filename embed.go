@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"go/token"
+	"io"
 	"os"
 	"os/exec"
 	"sort"
@@ -26,9 +27,20 @@ func embedFiles(pkgs []string) ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	var files struct{ EmbedFiles []string }
-	err = json.Unmarshal(buf.Bytes(), &files)
-	return files.EmbedFiles, err
+	var files []string
+	dec := json.NewDecoder(&buf)
+	for {
+		var pkg struct{ EmbedFiles []string }
+		err := dec.Decode(&pkg)
+		if err != nil {
+			if err != io.EOF {
+				return nil, err
+			}
+			break
+		}
+		files = append(files, pkg.EmbedFiles...)
+	}
+	return files, nil
 }
 
 // embedded is a representation of embedded data.
