@@ -11,13 +11,14 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"sort"
 	"unicode"
 	"unicode/utf8"
 )
 
 // TODO(kortschak): Remove this and use packages.Load
-// when https:///go.dev/issue/50720 is resolved.
+// when https://go.dev/issue/50720 is resolved.
 func embedFiles(pkgs []string) ([]string, error) {
 	args := []string{"list", "-json"}
 	cmd := exec.Command("go", append(args, pkgs...)...)
@@ -30,13 +31,19 @@ func embedFiles(pkgs []string) ([]string, error) {
 	var files []string
 	dec := json.NewDecoder(&buf)
 	for {
-		var pkg struct{ EmbedFiles []string }
+		var pkg struct {
+			Dir        string
+			EmbedFiles []string
+		}
 		err := dec.Decode(&pkg)
 		if err != nil {
 			if err != io.EOF {
 				return nil, err
 			}
 			break
+		}
+		for i, f := range pkg.EmbedFiles {
+			pkg.EmbedFiles[i] = filepath.Join(pkg.Dir, f)
 		}
 		files = append(files, pkg.EmbedFiles...)
 	}

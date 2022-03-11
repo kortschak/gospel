@@ -1,10 +1,10 @@
 # Show embedded file contents are checked when requested.
 
-gospel
+gospel ./...
 ! stdout .
 ! stderr .
 
-! gospel -check-embedded
+! gospel -check-embedded ./...
 ! stderr .
 cmp stdout expected_output
 
@@ -39,6 +39,10 @@ filesystem/b/data.txt:1:9: "fyra" is misspelled in embedded file
 filesystem/data.txt:1:5: "tre" is misspelled in embedded file
 	Och [31;1;3mtre[0m.
 long_lines.txt@17: "msispelling" is misspelled in embedded file
+other/bytes_file.txt:1:9: "misspole" is misspelled in embedded file
+other/bytes_file.txt:1:23: "multipole" is misspelled in embedded file
+	This is [31;1;3mmisspole[0m over
+	[31;1;3mmultipole[0m lines.
 string_file.txt:1:9: "två" is misspelled in embedded file
 	This is [31;1;3mtvå[0m.
 -- bytes_file.txt --
@@ -55,3 +59,16 @@ A text file with msispelling and no obvious non-text characters, but long lines 
 -- .words --
 1
 txt
+-- other/main.go --
+package main
+
+import _ "embed"
+
+//go:embed bytes_file.txt
+var bytesFile string
+
+func main() {
+}
+-- other/bytes_file.txt --
+This is misspole over
+multipole lines.
