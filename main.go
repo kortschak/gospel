@@ -43,7 +43,7 @@ func gospel() (status int) {
 	flag.BoolVar(&config.MaskURLs, "mask-urls", config.MaskURLs, "mask URLs in text")
 	flag.BoolVar(&config.CheckURLs, "check-urls", config.CheckURLs, "check URLs in text with HEAD request")
 	flag.BoolVar(&config.CamelSplit, "camel", config.CamelSplit, "split words on camel case")
-	flag.BoolVar(&config.EntropyFiler.Filter, "entropy-filter", config.EntropyFiler.Filter, "filter strings by entropy")
+	flag.BoolVar(&config.EntropyFiler.Filter, "entropy-filter", config.EntropyFiler.Filter, "filter strings and embedded files by entropy")
 	flag.IntVar(&config.MinNakedHex, "min-naked-hex", config.MinNakedHex, "length to recognize hex-digit words as number (0 is never ignore)")
 	flag.IntVar(&config.MaxWordLen, "max-word-len", config.MaxWordLen, "ignore words longer than this (0 is no limit)")
 	flag.IntVar(&config.MakeSuggestions, "suggest", config.MakeSuggestions, "make suggestions for misspellings (0 - never, 1 - first instance, 2 - always)")
@@ -185,7 +185,7 @@ See https://github.com/kortschak/gospel for more complete documentation.
 		}
 		const maxLineLen = 120 // TODO(kortschak): Consider making this configurable.
 		for _, path := range embedded {
-			e, err := loadEmbedded(path, maxLineLen)
+			e, err := c.loadEmbedded(path, maxLineLen)
 			if err != nil {
 				fmt.Fprintf(os.Stdout, "could not read embedded file: %v", err)
 				return internalError

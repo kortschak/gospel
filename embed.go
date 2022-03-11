@@ -62,12 +62,16 @@ type embedded struct {
 // in ASCII or UTF-8 text, or contains lines longer than maxLineLen, no
 // line-based position information will be retained and the file will be
 // treated as binary data.
-func loadEmbedded(path string, maxLineLen int) (*embedded, error) {
+func (c *checker) loadEmbedded(path string, maxLineLen int) (*embedded, error) {
 	b, err := os.ReadFile(path)
 	if err != nil {
 		return nil, err
 	}
 	e := &embedded{path: path, data: string(b)}
+	if c.unexpectedEntropy(e.data, false) { // Consider all characters for entropy.
+		e.data = ""
+		return e, nil
+	}
 	if !utf8.ValidString(e.data) {
 		return e, nil
 	}

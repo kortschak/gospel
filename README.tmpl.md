@@ -60,6 +60,7 @@ The remaining options are not intended to be persistently stored:
 
 - `-config` — whether to use config file (default true, intended for debugging use).
 - `-dict-paths` — a colon-separated directory list containing hunspell dictionaries (defaults to a system-specific value).
+- `-entropy-filter` — filter strings and embedded files by entropy.
 - `-misspellings` — a file path to write a dictionary of misspellings to (see [Work Flow](#work-flow) above).
 - `-since` — a git ref specifying that only changes since then should be considered for misspelling (requires git).
 - `-update-dict` — whether the `-misspellings` flag is being used to update a dictionary that already exists.
