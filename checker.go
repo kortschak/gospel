@@ -325,7 +325,8 @@ func (c *checker) Visit(n ast.Node) ast.Visitor {
 }
 
 // unexpectedEntropy returns whether the text falls outside the expected
-// ranges for text.
+// ranges for text. If print is true only printable bytes are considered
+// when calculating entropy.
 func (c *checker) unexpectedEntropy(text string, print bool) bool {
 	if !c.EntropyFiler.Filter || len(text) < c.EntropyFiler.MinLenFiltered {
 		return false
