@@ -119,7 +119,7 @@ TOML format `.gospel.conf` file. A number of options are provided:
 - `camel` — whether to split camelCase words into the components if the complete word is not accepted, otherwise split only on underscore.
 - `max_word_len` — the maximum length of words that should be checked.
 - `min_naked_hex` — minimum length for exclusion of words that are composed of only hex digits 0-9 and a-f (case insensitive).
-- `suggest` — when suggestions should be presented for misspellings: never, once or always.
+- `suggest` — when suggestions should be presented for misspellings: "never", "once", once for "each" comment block, or "always".
 - `diff_context` — how many lines around a change should be checked when the `-since` flag is used.
 - `entropy_filter` — controls the entropy filter used to exclude non-natural language from checking.
     - `min_len_filtered` — the minimum length of text chunks to be considered by the entropy filter; the string literal length for strings, the file length for embedded files and the line or block length for comments.

@@ -46,7 +46,7 @@ func gospel() (status int) {
 	flag.BoolVar(&config.EntropyFiler.Filter, "entropy-filter", config.EntropyFiler.Filter, "filter strings and embedded files by entropy")
 	flag.IntVar(&config.MinNakedHex, "min-naked-hex", config.MinNakedHex, "length to recognize hex-digit words as number (0 is never ignore)")
 	flag.IntVar(&config.MaxWordLen, "max-word-len", config.MaxWordLen, "ignore words longer than this (0 is no limit)")
-	flag.Var(&config.MakeSuggestions, "suggest", "make suggestions for misspellings (never, once, always)")
+	flag.Var(&config.MakeSuggestions, "suggest", "make suggestions for misspellings (never, once, each, always)")
 	flag.IntVar(&config.DiffContext, "diff-context", config.DiffContext, "specify number of lines of change context to include")
 
 	// Non-persisted config options.
