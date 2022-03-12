@@ -227,7 +227,7 @@ for your system can be found in the hunspell dictionary path for reference.
 Invoking `hunspell -D` will print the search path and show which dictionaries
 are available. On many linux system the file are found in `/usr/share/hunspell/`
 and on macos they are usually expected to be in `~/Library/Spelling/` or
-`/Library/Spelling`.
+`/Library/Spelling/`.
 
 `gospel` will not add affix rules to words that have been identified as
 misspelled, but will retain rules that have been added during dictionary
