@@ -142,6 +142,13 @@ func newDictionary(pkgs []*packages.Package, cfg config) (*dictionary, error) {
 	}
 	ook.urls = nil
 
+	if cfg.ReadLicenses {
+		const licenseThreshold = 75 // Threshold for matching a license.
+		for r := range d.roots {
+			readLicenses(d.Spell, r, licenseThreshold)
+		}
+	}
+
 	if cfg.IgnoreIdents {
 		err = addIdentifiers(d.Spell, pkgs, make(map[string]bool))
 		if err != nil {

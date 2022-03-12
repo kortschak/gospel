@@ -19,6 +19,7 @@ check_embedded = false
 ignore_upper = true
 ignore_single = true
 ignore_numbers = true
+read_licenses = true
 mask_flags = false
 mask_urls = true
 check_urls = false

@@ -35,6 +35,7 @@ type config struct {
 	IgnoreUpper     bool          `toml:"ignore_upper"`   // ignore words that are all uppercase.
 	IgnoreSingle    bool          `toml:"ignore_single"`  // ignore words that are a single rune.
 	IgnoreNumbers   bool          `toml:"ignore_numbers"` // ignore Go syntax number literals.
+	ReadLicenses    bool          `toml:"read_licenses"`  // ignore all words found in license files.
 	MaskFlags       bool          `toml:"mask_flags"`     // ignore words with a leading dash.
 	MaskURLs        bool          `toml:"mask_urls"`      // mask URLs before checking.
 	CheckURLs       bool          `toml:"check_urls"`     // check URLs point to reachable targets.
@@ -66,6 +67,7 @@ var defaults = config{
 	IgnoreUpper:     true,
 	IgnoreSingle:    true,
 	IgnoreNumbers:   true,
+	ReadLicenses:    true,
 	MaskFlags:       false,
 	MaskURLs:        true,
 	CheckURLs:       false,
