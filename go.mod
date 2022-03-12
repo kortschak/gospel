@@ -5,6 +5,7 @@ go 1.17
 require (
 	github.com/BurntSushi/toml v1.0.0
 	github.com/google/go-cmp v0.5.7
+	github.com/google/licensecheck v0.3.1
 	github.com/kortschak/camel v0.0.0-20220208065757-0665e01e7dba
 	github.com/kortschak/ct v0.0.0-20140325011614-7d86dffe6951
 	github.com/kortschak/hunspell v0.0.0-20220305030544-5d8374a03860

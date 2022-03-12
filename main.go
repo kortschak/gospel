@@ -39,6 +39,7 @@ func gospel() (status int) {
 	flag.BoolVar(&config.IgnoreUpper, "ignore-upper", config.IgnoreUpper, "ignore all-uppercase words")
 	flag.BoolVar(&config.IgnoreSingle, "ignore-single", config.IgnoreSingle, "ignore single letter words")
 	flag.BoolVar(&config.IgnoreNumbers, "ignore-numbers", config.IgnoreNumbers, "ignore Go syntax number literals")
+	flag.BoolVar(&config.ReadLicenses, "read-licenses", config.ReadLicenses, "ignore words found in license files")
 	flag.BoolVar(&config.MaskFlags, "mask-flags", config.MaskFlags, "ignore words with a leading dash")
 	flag.BoolVar(&config.MaskURLs, "mask-urls", config.MaskURLs, "mask URLs in text")
 	flag.BoolVar(&config.CheckURLs, "check-urls", config.CheckURLs, "check URLs in text with HEAD request")

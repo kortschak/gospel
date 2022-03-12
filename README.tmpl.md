@@ -105,6 +105,7 @@ TOML format `.gospel.conf` file. A number of options are provided:
 - `ignore_upper` — whether to ignore words that are all uppercase or their plurals.
 - `ignore_single` — whether to ignore single rune words.
 - `ignore_numbers` — whether to ignore number literals.
+- `read_licenses` — whether to ignore words found in license files.
 - `mask_flags` — whether words that could be command-line flags should be removed prior to checking.
 - `mask_urls` — whether URLs should be removed prior to checking.
 - `check_urls` — whether the HTTP/HTTPS reachability of URLs should be checked.
