@@ -66,6 +66,7 @@ func (c *checker) report() {
 	}
 
 	for _, chunk := range chunks {
+		suggested := make(map[string]bool)
 		for _, l := range chunk {
 			for _, w := range l.words {
 				p := l.pos
@@ -79,14 +80,18 @@ func (c *checker) report() {
 					fmt.Printf("%v@%d: %q is %s in %s", rel(p.Filename), w.span.pos, w.word, w.note, l.where)
 				}
 
-				if w.suggest && (c.MakeSuggestions == always || (c.MakeSuggestions == once && c.suggested[w.word] == nil)) {
+				if w.suggest &&
+					(c.MakeSuggestions == always ||
+						(c.MakeSuggestions == each && !suggested[w.word]) ||
+						(c.MakeSuggestions == once && c.suggested[w.word] == nil)) {
 					suggestions, ok := c.suggested[w.word]
 					if !ok {
 						suggestions = c.dictionary.Suggest(w.word)
-						if c.MakeSuggestions == always {
+						switch c.MakeSuggestions {
+						case always, each:
 							// Cache suggestions.
 							c.suggested[w.word] = suggestions
-						} else {
+						default:
 							// Mark as suggested.
 							c.suggested[w.word] = empty
 						}
@@ -100,6 +105,9 @@ func (c *checker) report() {
 							fmt.Printf("%s", c.suggest(s))
 						}
 						fmt.Print(")")
+						if c.MakeSuggestions == each {
+							suggested[w.word] = true
+						}
 					}
 				}
 				fmt.Println()

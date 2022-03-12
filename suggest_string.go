@@ -10,12 +10,13 @@ func _() {
 	var x [1]struct{}
 	_ = x[never-0]
 	_ = x[once-1]
-	_ = x[always-2]
+	_ = x[each-2]
+	_ = x[always-3]
 }
 
-const _suggest_name = "neveroncealways"
+const _suggest_name = "neveronceeachalways"
 
-var _suggest_index = [...]uint8{0, 5, 9, 15}
+var _suggest_index = [...]uint8{0, 5, 9, 13, 19}
 
 func (i suggest) String() string {
 	if i < 0 || i >= suggest(len(_suggest_index)-1) {

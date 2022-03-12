@@ -88,6 +88,7 @@ var defaults = config{
 const (
 	never suggest = iota
 	once
+	each
 	always
 )
 
@@ -103,7 +104,7 @@ func (s *suggest) Set(val string) error {
 			return nil
 		}
 	}
-	return fmt.Errorf(`valid options are "never", "once" and "always"`)
+	return fmt.Errorf(`valid options are "never", "once", "each" and "always"`)
 }
 
 // entropyFilter specifies behaviour of the entropy filter.

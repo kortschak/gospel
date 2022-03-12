@@ -14,6 +14,12 @@ cmp stdout expected_noshow_nosuggest
 cmp stdout expected_noshow_suggest_one
 
 
+# show suggestion for first occurrence in each block
+! gospel -show=false -suggest=each
+! stderr .
+cmp stdout expected_noshow_suggest_each
+
+
 # always show suggestions
 ! gospel -show=false -suggest=always
 ! stderr .
@@ -26,6 +32,12 @@ cmp stdout expected_noshow_suggest_always
 ! gospel -suggest=once
 ! stderr .
 cmp stdout expected_show_suggest_one
+
+
+# show suggestion for first occurrence in each block
+! gospel -suggest=each
+! stderr .
+cmp stdout expected_show_suggest_each
 
 
 # always show suggestions
@@ -46,29 +58,57 @@ func fn1() {
 }
 
 // coloured coloured
+// coloured coloured
 func fn2() {
 }
 -- expected_noshow_nosuggest --
 main.go:6:4: "coloured" is misspelled in comment
 main.go:10:4: "coloured" is misspelled in comment
 main.go:10:13: "coloured" is misspelled in comment
+main.go:11:4: "coloured" is misspelled in comment
+main.go:11:13: "coloured" is misspelled in comment
 -- expected_noshow_suggest_one --
 main.go:6:4: "coloured" is misspelled in comment (suggest: colored, co loured, co-loured)
 main.go:10:4: "coloured" is misspelled in comment
 main.go:10:13: "coloured" is misspelled in comment
+main.go:11:4: "coloured" is misspelled in comment
+main.go:11:13: "coloured" is misspelled in comment
+-- expected_noshow_suggest_each --
+main.go:6:4: "coloured" is misspelled in comment (suggest: colored, co loured, co-loured)
+main.go:10:4: "coloured" is misspelled in comment (suggest: colored, co loured, co-loured)
+main.go:10:13: "coloured" is misspelled in comment
+main.go:11:4: "coloured" is misspelled in comment
+main.go:11:13: "coloured" is misspelled in comment
 -- expected_noshow_suggest_always --
 main.go:6:4: "coloured" is misspelled in comment (suggest: colored, co loured, co-loured)
 main.go:10:4: "coloured" is misspelled in comment (suggest: colored, co loured, co-loured)
 main.go:10:13: "coloured" is misspelled in comment (suggest: colored, co loured, co-loured)
+main.go:11:4: "coloured" is misspelled in comment (suggest: colored, co loured, co-loured)
+main.go:11:13: "coloured" is misspelled in comment (suggest: colored, co loured, co-loured)
 -- expected_show_suggest_one --
 main.go:6:4: "coloured" is misspelled in comment (suggest: [32;1;3mcolored[0m, [32;1;3mco loured[0m, [32;1;3mco-loured[0m)
 	// [31;1;3mcoloured[0m
 main.go:10:4: "coloured" is misspelled in comment
 main.go:10:13: "coloured" is misspelled in comment
+main.go:11:4: "coloured" is misspelled in comment
+main.go:11:13: "coloured" is misspelled in comment
+	// [31;1;3mcoloured[0m [31;1;3mcoloured[0m
+	// [31;1;3mcoloured[0m [31;1;3mcoloured[0m
+-- expected_show_suggest_each --
+main.go:6:4: "coloured" is misspelled in comment (suggest: [32;1;3mcolored[0m, [32;1;3mco loured[0m, [32;1;3mco-loured[0m)
+	// [31;1;3mcoloured[0m
+main.go:10:4: "coloured" is misspelled in comment (suggest: [32;1;3mcolored[0m, [32;1;3mco loured[0m, [32;1;3mco-loured[0m)
+main.go:10:13: "coloured" is misspelled in comment
+main.go:11:4: "coloured" is misspelled in comment
+main.go:11:13: "coloured" is misspelled in comment
+	// [31;1;3mcoloured[0m [31;1;3mcoloured[0m
 	// [31;1;3mcoloured[0m [31;1;3mcoloured[0m
 -- expected_show_suggest_always --
 main.go:6:4: "coloured" is misspelled in comment (suggest: [32;1;3mcolored[0m, [32;1;3mco loured[0m, [32;1;3mco-loured[0m)
 	// [31;1;3mcoloured[0m
 main.go:10:4: "coloured" is misspelled in comment (suggest: [32;1;3mcolored[0m, [32;1;3mco loured[0m, [32;1;3mco-loured[0m)
 main.go:10:13: "coloured" is misspelled in comment (suggest: [32;1;3mcolored[0m, [32;1;3mco loured[0m, [32;1;3mco-loured[0m)
+main.go:11:4: "coloured" is misspelled in comment (suggest: [32;1;3mcolored[0m, [32;1;3mco loured[0m, [32;1;3mco-loured[0m)
+main.go:11:13: "coloured" is misspelled in comment (suggest: [32;1;3mcolored[0m, [32;1;3mco loured[0m, [32;1;3mco-loured[0m)
+	// [31;1;3mcoloured[0m [31;1;3mcoloured[0m
 	// [31;1;3mcoloured[0m [31;1;3mcoloured[0m
