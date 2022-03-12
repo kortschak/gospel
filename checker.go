@@ -41,8 +41,14 @@ type checker struct {
 
 	suggested map[string][]string
 
+	// generated is the set of files that have code generation
+	// comments.
+	generated map[string]bool
+
 	// warn is the decoration for incorrectly spelled words.
-	warn func(...interface{}) fmt.Formatter
+	// Warnings are colour-differentiated based on whether the
+	// source is generated code.
+	warn map[bool]func(...interface{}) fmt.Formatter
 	// suggest is the decoration for suggested words.
 	suggest func(...interface{}) fmt.Formatter
 }
@@ -65,7 +71,11 @@ func newChecker(d *dictionary, cfg config) (*checker, error) {
 			isHexRune{},
 			isUnit{},
 		},
-		warn: (ct.Italic | ct.Fg(ct.BoldRed)).Paint,
+		generated: make(map[string]bool),
+		warn: map[bool]func(...interface{}) fmt.Formatter{
+			false: (ct.Italic | ct.Fg(ct.BoldRed)).Paint,    // Not generated code.
+			true:  (ct.Italic | ct.Fg(ct.BoldYellow)).Paint, // Generated code.
+		},
 	}
 	if c.Show {
 		c.suggest = (ct.Italic | ct.Fg(ct.BoldGreen)).Paint
@@ -186,6 +196,33 @@ func where(n ast.Node) string {
 		return "embedded file"
 	default:
 		return fmt.Sprintf("unexpected node type: %T", n)
+	}
+}
+
+// genNote is the specified pattern for generated code notes. See output
+// of go help generate.
+var genNote = regexp.MustCompile("^// Code generated .* DO NOT EDIT.$")
+
+// noteGenerated collects the set of files that have been marked as generated.
+func (c *checker) noteGenerated(f *ast.File) {
+	for _, g := range f.Comments {
+		if g.Pos() > f.Package {
+			// From go help generate:
+			//
+			//   This line must appear before the first non-comment, non-blank
+			//   text in the file.
+			//
+			// Though not all packages adhere to this and place it after
+			// the package decl. Leave those files as non-generated to send
+			// a signal to repair that.
+			return
+		}
+		for _, cm := range g.List {
+			if genNote.MatchString(cm.Text) {
+				c.generated[c.fileset.Position(f.Pos()).Filename] = true
+				return
+			}
+		}
 	}
 }
 

@@ -143,6 +143,7 @@ See https://github.com/kortschak/gospel for more complete documentation.
 			if !c.changeFilter.fileIsInChange(f.Pos(), c.fileset) {
 				continue
 			}
+			c.noteGenerated(f)
 			if c.CheckStrings {
 				ast.Walk(c, f)
 			}
