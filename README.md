@@ -218,7 +218,7 @@ applied matching to the target word. The second last indicates the suffix to
 add, and the third last indicates any characters to remove before adding the
 suffix ("0" indicated no removal). So with "advise", the first rule matches,
 resulting in "advise"+"r" being accepted as a correctly spelling word. The
-words "buy" and "fly" illustrate how the second and third rules would by
+words "buy" and "fly" illustrate how the second and third rules would be
 applied; "buy" will match the third rule and so would allow "buy"+"ers",
 but "fly" would match the second and allow "fl"+"iers".
 
