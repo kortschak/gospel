@@ -158,6 +158,7 @@ var knownUnits = []string{
 	"Å", "nm", "µm", "mm", "cm", "m", "km",
 	"ns", "µs", "us", "ms", "s", "min", "hr",
 	"Hz",
+	"am", "pm",
 }
 
 // patterns is a heuristic based on user-provided regular expressions.
