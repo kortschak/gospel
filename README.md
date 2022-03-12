@@ -225,7 +225,7 @@ but "fly" would match the second and allow "fl"+"iers".
 If you are adding specific rules to your `.words` file, the `.aff` files
 for your system can be found in the hunspell dictionary path for reference.
 Invoking `hunspell -D` will print the search path and show which dictionaries
-are available. On many linux system the file are found in `/usr/share/hunspell/`
+are available. On many linux system the files are found in `/usr/share/hunspell/`
 and on macos they are usually expected to be in `~/Library/Spelling/` or
 `/Library/Spelling/`.
 
