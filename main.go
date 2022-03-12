@@ -149,7 +149,7 @@ See https://github.com/kortschak/gospel for more complete documentation.
 			for _, g := range f.Comments {
 				lastOK := true
 				for i, l := range g.List {
-					ok := c.check(l.Text, l, "comment")
+					ok := c.check(l.Text, l)
 
 					// Provide context for spelling in comments.
 					if !ok {
@@ -194,7 +194,7 @@ See https://github.com/kortschak/gospel for more complete documentation.
 				continue
 			}
 			c.fileset = e
-			c.check(e.Text(), e, "embedded file")
+			c.check(e.Text(), e)
 		}
 	}
 	if d.misspellings != 0 {

@@ -106,7 +106,7 @@ func newChecker(d *dictionary, cfg config) (*checker, error) {
 
 // check checks the provided text and outputs information about any misspellings
 // in the text.
-func (c *checker) check(text string, node ast.Node, where string) (ok bool) {
+func (c *checker) check(text string, node ast.Node) (ok bool) {
 	var misspellings []misspelled
 
 	if c.CheckURLs {
@@ -152,7 +152,7 @@ func (c *checker) check(text string, node ast.Node, where string) (ok bool) {
 	if len(misspellings) != 0 {
 		c.misspellings = append(c.misspellings, misspelling{
 			words: misspellings,
-			where: where,
+			where: where(node),
 			text:  text,
 			pos:   c.fileset.Position(node.Pos()),
 			end:   c.fileset.Position(node.End()),
@@ -172,6 +172,21 @@ func rel(path string) string {
 		return path
 	}
 	return rel
+}
+
+// where returns a string representation of the class of syntax
+// component where the misspelling was identified.
+func where(n ast.Node) string {
+	switch n.(type) {
+	case *ast.Comment:
+		return "comment"
+	case *ast.BasicLit:
+		return "string"
+	case *embedded:
+		return "embedded file"
+	default:
+		return fmt.Sprintf("unexpected node type: %T", n)
+	}
 }
 
 var (
@@ -319,7 +334,7 @@ func (c *checker) Visit(n ast.Node) ast.Visitor {
 		if c.unexpectedEntropy(text, isDoubleQuoted) {
 			return c
 		}
-		c.check(n.Value, n, "string")
+		c.check(n.Value, n)
 	}
 	return c
 }
