@@ -70,7 +70,11 @@ func (c *checker) report() {
 			for _, w := range l.words {
 				p := l.pos
 				if p.IsValid() {
-					fmt.Printf("%v:%d:%d: %q is %s in %s", rel(p.Filename), p.Line, p.Column+w.span.pos, w.word, w.note, l.where)
+					var generated string
+					if c.generated[p.Filename] {
+						generated = " (generated file)"
+					}
+					fmt.Printf("%v:%d:%d: %q is %s in %s%s", rel(p.Filename), p.Line, p.Column+w.span.pos, w.word, w.note, l.where, generated)
 				} else {
 					fmt.Printf("%v@%d: %q is %s in %s", rel(p.Filename), w.span.pos, w.word, w.note, l.where)
 				}
@@ -119,11 +123,12 @@ func (c *checker) report() {
 					args    []interface{}
 					lastPos int
 				)
+				generated := c.generated[l.pos.Filename]
 				for _, w := range l.words {
 					if w.span.pos != lastPos {
 						args = append(args, l.text[lastPos:w.span.pos])
 					}
-					args = append(args, c.warn(l.text[w.span.pos:w.span.pos+len(w.word)]), l.text[w.span.pos+len(w.word):w.span.end])
+					args = append(args, c.warn[generated](l.text[w.span.pos:w.span.pos+len(w.word)]), l.text[w.span.pos+len(w.word):w.span.end])
 					lastPos = w.span.end
 				}
 				if lastPos != len(l.text) {
