@@ -10,18 +10,19 @@ import (
 	"go/token"
 	"io"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"sort"
 	"unicode"
 	"unicode/utf8"
+
+	"golang.org/x/sys/execabs"
 )
 
 // TODO(kortschak): Remove this and use packages.Load
 // when https://go.dev/issue/50720 is resolved.
 func embedFiles(pkgs []string) ([]string, error) {
 	args := []string{"list", "-json"}
-	cmd := exec.Command("go", append(args, pkgs...)...)
+	cmd := execabs.Command("go", append(args, pkgs...)...)
 	var buf bytes.Buffer
 	cmd.Stdout = &buf
 	err := cmd.Run()

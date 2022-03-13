@@ -21,3 +21,8 @@ require (
 	golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1 // indirect
 	gopkg.in/errgo.v2 v2.1.0 // indirect
 )
+
+retract (
+	v1.10.0 // Unsafe use of os/exec.
+	v1.10.1 // Unsafe use of os/exec.
+)
