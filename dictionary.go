@@ -149,6 +149,9 @@ func newDictionary(pkgs []*packages.Package, cfg config) (*dictionary, error) {
 			readLicenses(d.Spell, r, licenseThreshold)
 		}
 	}
+	if cfg.GitLog {
+		readGitLog(d.Spell)
+	}
 
 	if cfg.IgnoreIdents {
 		err = addIdentifiers(d.Spell, pkgs, make(map[string]bool))
