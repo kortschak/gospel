@@ -20,6 +20,7 @@ ignore_upper = true
 ignore_single = true
 ignore_numbers = true
 read_licenses = true
+read_git_log = true
 mask_flags = false
 mask_urls = true
 check_urls = false

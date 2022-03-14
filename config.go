@@ -36,6 +36,7 @@ type config struct {
 	IgnoreSingle    bool          `toml:"ignore_single"`  // ignore words that are a single rune.
 	IgnoreNumbers   bool          `toml:"ignore_numbers"` // ignore Go syntax number literals.
 	ReadLicenses    bool          `toml:"read_licenses"`  // ignore all words found in license files.
+	GitLog          bool          `toml:"read_git_log"`   // ignore all author names and emails found in git log.
 	MaskFlags       bool          `toml:"mask_flags"`     // ignore words with a leading dash.
 	MaskURLs        bool          `toml:"mask_urls"`      // mask URLs before checking.
 	CheckURLs       bool          `toml:"check_urls"`     // check URLs point to reachable targets.
@@ -68,6 +69,7 @@ var defaults = config{
 	IgnoreSingle:    true,
 	IgnoreNumbers:   true,
 	ReadLicenses:    true,
+	GitLog:          true,
 	MaskFlags:       false,
 	MaskURLs:        true,
 	CheckURLs:       false,

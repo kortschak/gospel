@@ -1,0 +1,33 @@
+# Show git log-dependent checks.
+
+exec git init
+exec git config user.email 'slartibartfast@magrathea.com'
+exec git config user.name 'Slartibartfast'
+exec git add go.mod main.go
+exec git commit -m 'initial commit'
+
+! gospel -read-git-log=false
+! stderr .
+cmp stdout expected_output
+
+gospel -read-git-log=true
+! stdout .
+! stderr .
+
+-- go.mod --
+module norway
+
+go 1.17
+-- main.go --
+// Copyright Magrathea World Builders.
+// Author: Slartibartfast
+
+package main
+
+func main() {
+}
+-- expected_output --
+main.go:1:14: "Magrathea" is misspelled in comment
+main.go:2:12: "Slartibartfast" is misspelled in comment
+	// Copyright [31;1;3mMagrathea[0m World Builders.
+	// Author: [31;1;3mSlartibartfast[0m
