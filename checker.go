@@ -201,7 +201,7 @@ func where(n ast.Node) string {
 
 // genNote is the specified pattern for generated code notes. See output
 // of go help generate.
-var genNote = regexp.MustCompile("^// Code generated .* DO NOT EDIT.$")
+var genNote = regexp.MustCompile(`^// Code generated .* DO NOT EDIT\.$`)
 
 // noteGenerated collects the set of files that have been marked as generated.
 func (c *checker) noteGenerated(f *ast.File) {
