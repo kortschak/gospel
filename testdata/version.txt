@@ -1,0 +1,5 @@
+# Show successful version output.
+
+gospel -version
+stdout 'github.com/kortschak/gospel'
+stdout 'Build settings:'

@@ -15,6 +15,7 @@ import (
 	"fmt"
 	"go/ast"
 	"os"
+	"runtime/debug"
 	"strings"
 
 	"github.com/BurntSushi/toml"
@@ -57,6 +58,7 @@ func gospel() (status int) {
 	flag.BoolVar(&config.update, "update-dict", false, "update misspellings dictionary instead of creating a new one")
 	flag.StringVar(&config.since, "since", config.since, "only consider changes since this ref (requires git)")
 
+	version := flag.Bool("version", false, "update misspellings dictionary instead of creating a new one")
 	writeConf := flag.Bool("write-config", false, "write config file based on flags and existing config to stdout and exit")
 	flag.Bool("config", true, "use config file") // Included for documentation.
 	flag.Usage = func() {
@@ -91,6 +93,22 @@ See https://github.com/kortschak/gospel for more complete documentation.
 		flag.PrintDefaults()
 	}
 	flag.Parse()
+
+	if *version {
+		info, ok := debug.ReadBuildInfo()
+		if !ok {
+			fmt.Println("unknown")
+			return 0
+		}
+		mod := &info.Main
+		if mod.Replace != nil {
+			mod = mod.Replace
+		}
+
+		fmt.Printf("%s %s %s\n\n", mod.Path, mod.Version, mod.Sum)
+		buildSettings(info)
+		return 0
+	}
 
 	if config.Lang == "" {
 		fmt.Fprintln(os.Stderr, "missing lang flag")
