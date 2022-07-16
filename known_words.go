@@ -81,7 +81,7 @@ var knownWords = []string{
 	"uintptrescapes",
 	"yeswritebarrierrec",
 
-	// Compiler build flags
+	// Tool chain flags
 	"asan",
 	"asmflags",
 	"buildmode",
@@ -90,6 +90,7 @@ var knownWords = []string{
 	"gcflags",
 	"installsuffix",
 	"ldflags",
+	"linecomment",
 	"linkshared",
 	"modcacherw",
 	"modfile",
@@ -97,6 +98,11 @@ var knownWords = []string{
 	"pkgdir",
 	"toolexec",
 	"trimpath",
+	"trimprefix",
+
+	// Build tags
+	"boringcrypto",
+	"purego",
 
 	// Common hosters
 	"bitbucket/M", "github/M", "gitlab/M", "sourcehut/M", "sr", "ht",
@@ -174,12 +180,13 @@ var knownWords = []string{
 	"cpus",
 	"cryptographic",
 	"cryptographically",
+	"ciphertext/S",
 	"dataflow",
 	"datastructure/MS",
 	"deadcode",
 	"deallocate/SD",
 	"decrementing",
-	"decrypt/SD",
+	"decrypt/SDG",
 	"deduplicate",
 	"deduplicating",
 	"deduplication",
@@ -278,6 +285,7 @@ var knownWords = []string{
 	"natively",
 	"nullability",
 	"omitempty",
+	"plaintext/S",
 	"poller",
 	"popcount",
 	"portably",
@@ -312,6 +320,8 @@ var knownWords = []string{
 	"sha",
 	"sharded",
 	"sharding",
+	"stateful",
+	"stateless",
 	"stderr/M",
 	"stdin/M",
 	"stdout/M",

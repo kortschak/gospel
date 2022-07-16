@@ -27,11 +27,9 @@ func main() {
 main.go:3:22: "jobserver" is misspelled in comment
 main.go:3:32: "fds" is misspelled in comment
 main.go:4:22: "nahsty_flaag" is misspelled in comment
-main.go:5:37: "linecomment" is misspelled in comment
-main.go:5:50: "trimprefix" is misspelled in comment
 	//go:generate make --[31;1;3mjobserver[0m-[31;1;3mfds[0m
 	//go:generate tool --[31;1;3mnahsty_flaag[0m
-	//go:generate stringer -type token -[31;1;3mlinecomment[0m -[31;1;3mtrimprefix[0m _
+	//go:generate stringer -type token -linecomment -trimprefix _
 main.go:9:27: "woords" is misspelled in comment
 main.go:10:45: "behaviour" is misspelled in comment
 	// Don't allow misspelled-[31;1;3mwoords[0m to get past the filter. Some

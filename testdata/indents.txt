@@ -101,8 +101,6 @@ main.go:19:4: "Sufffix" is misspelled in comment
 		Second line.
 	*/
 	// [31;1;3mSufffix[0m
-main.go:21:15: "linecomment" is misspelled in comment
-	// Zero level [31;1;3mlinecomment[0m.
 main.go:23:25: "doublequoted" is misspelled in string
 	"Zero level [31;1;3mdoublequoted[0m."
 main.go:25:26: "singlequoted" is misspelled in string
@@ -123,8 +121,6 @@ main.go:38:5: "Sufffix" is misspelled in comment
 	// [31;1;3mSufffix[0m
 	/* subsequent block
 	*/
-main.go:42:17: "linecomment" is misspelled in comment
-	// First level [31;1;3mlinecomment[0m.
 main.go:44:27: "doublequoted" is misspelled in string
 	"First level [31;1;3mdoublequoted[0m."
 main.go:46:28: "singlequoted" is misspelled in string
@@ -145,8 +141,6 @@ main.go:59:6: "Sufffix" is misspelled in comment
 	// [31;1;3mSufffix[0m
 	/* subsequent block
 	*/
-main.go:63:19: "linecomment" is misspelled in comment
-	// Second level [31;1;3mlinecomment[0m.
 main.go:65:29: "doublequoted" is misspelled in string
 	"Second level [31;1;3mdoublequoted[0m."
 main.go:67:30: "singlequoted" is misspelled in string
