@@ -149,13 +149,14 @@ func (c *checker) check(text string, node ast.Node) (ok bool) {
 			word = strings.TrimSuffix(word, "'th")
 		}
 
-		if c.isCorrect(stripUnderscores(word), false) {
+		ok, note := c.isCorrect(stripUnderscores(word), false)
+		if ok {
 			continue
 		}
 		misspellings = append(misspellings, misspelled{
 			word:    word,
 			span:    w.current,
-			note:    "misspelled",
+			note:    note,
 			suggest: true,
 		})
 	}
@@ -311,20 +312,24 @@ func (c *checker) confirmURLtargets(dst []misspelled, text string, node ast.Node
 var empty = []string{}
 
 // isCorrect performs the word correctness checks for checker.
-func (c *checker) isCorrect(word string, partial bool) bool {
+func (c *checker) isCorrect(word string, partial bool) (ok bool, note string) {
 	for _, h := range c.heuristics {
 		if h.isAcceptable(word, partial) {
-			return true
+			return true, ""
 		}
 	}
 	if c.dictionary.IsCorrect(word) {
-		return true
+		return true, ""
 	}
-	if partial || c.caseFoldMatch(word) {
+	if partial {
+		c.dictionary.noteMisspelling(word)
+		return false, "misspelled"
+	}
+	if c.caseFoldMatch(word) {
 		// TODO(kortschak): Consider not adding case-fold
 		// matches to the misspelled map.
 		c.dictionary.noteMisspelling(word)
-		return false
+		return false, "misspelled (case mismatch)"
 	}
 	var fragments []string
 	if c.CamelSplit {
@@ -335,11 +340,11 @@ func (c *checker) isCorrect(word string, partial bool) bool {
 		fragments = strings.Split(word, "_")
 	}
 	for _, frag := range fragments {
-		if !c.isCorrect(frag, true) {
-			return false
+		if ok, _ = c.isCorrect(frag, true); !ok {
+			return false, "misspelled"
 		}
 	}
-	return true
+	return true, ""
 }
 
 // caseFoldMatch returns whether there is a suggestion for the word that
