@@ -21,4 +21,4 @@ func DefaultExecHandler(killTimeout time.Duration) {
 1
 KillTimeout
 -- expected_output --
-main.go:5:4: "KillTimeout" is misspelled in comment
+main.go:5:4: "KillTimeout" is misspelled (case mismatch) in comment
