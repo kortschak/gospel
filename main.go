@@ -130,6 +130,7 @@ See https://github.com/kortschak/gospel for more complete documentation.
 
 	cfg := &packages.Config{
 		Mode: packages.NeedFiles |
+			packages.NeedEmbedFiles |
 			packages.NeedImports |
 			packages.NeedDeps |
 			packages.NeedSyntax |
@@ -197,12 +198,9 @@ See https://github.com/kortschak/gospel for more complete documentation.
 		}
 	}
 	if c.CheckEmbedded {
-		// TODO(kortschak): Remove this and use packages.Load
-		// when https://go.dev/issue/50720 is resolved.
-		embedded, err := embedFiles(flag.Args())
-		if err != nil {
-			fmt.Fprintf(os.Stdout, "could not get embedded files list: %v", err)
-			return internalError
+		var embedded []string
+		for _, pkg := range pkgs {
+			embedded = append(embedded, pkg.EmbedFiles...)
 		}
 		const maxLineLen = 120 // TODO(kortschak): Consider making this configurable.
 		for _, path := range embedded {

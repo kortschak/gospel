@@ -5,51 +5,12 @@
 package main
 
 import (
-	"bytes"
-	"encoding/json"
 	"go/token"
-	"io"
 	"os"
-	"path/filepath"
 	"sort"
 	"unicode"
 	"unicode/utf8"
-
-	"golang.org/x/sys/execabs"
 )
-
-// TODO(kortschak): Remove this and use packages.Load
-// when https://go.dev/issue/50720 is resolved.
-func embedFiles(pkgs []string) ([]string, error) {
-	args := []string{"list", "-json"}
-	cmd := execabs.Command("go", append(args, pkgs...)...)
-	var buf bytes.Buffer
-	cmd.Stdout = &buf
-	err := cmd.Run()
-	if err != nil {
-		return nil, err
-	}
-	var files []string
-	dec := json.NewDecoder(&buf)
-	for {
-		var pkg struct {
-			Dir        string
-			EmbedFiles []string
-		}
-		err := dec.Decode(&pkg)
-		if err != nil {
-			if err != io.EOF {
-				return nil, err
-			}
-			break
-		}
-		for i, f := range pkg.EmbedFiles {
-			pkg.EmbedFiles[i] = filepath.Join(pkg.Dir, f)
-		}
-		files = append(files, pkg.EmbedFiles...)
-	}
-	return files, nil
-}
 
 // embedded is a representation of embedded data.
 type embedded struct {
