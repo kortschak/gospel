@@ -184,7 +184,7 @@ separated by a slash. The two examples here would be represented (in the
 lint/G
 thing/S
 ```
-where the `/S` indicats that "thing" can be pluralised and the "lint" can be
+where the `/S` indicates that "thing" can be pluralised and the "lint" can be
 extended to its gerund. It is possible to specify more than one affix rule,
 and affixes can be prefix or suffix modifiers. Prefix and suffix rules can
 interact as the cross product (see below). So from the "en_US" dictionary,
