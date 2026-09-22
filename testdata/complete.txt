@@ -41,10 +41,9 @@ thes and thet is masked by a var and fnagle is masked by a function.
 
 func fnagle() {}
 -- expected_words --
-10
+9
 errirs
 fnagle
-fo
 litreals
 misktaes
 nothign
@@ -58,14 +57,12 @@ main.go:1:59: "seperate" is misspelled in comment
 main.go:10:21: "_nothign_" is misspelled in comment
 main.go:13:21: "misktaes" is misspelled in string
 main.go:13:56: "litreals" is misspelled in string
-main.go:14:20: "fo" is misspelled in string
 -- expected_output_noignore_idents --
 main.go:1:23: "programme" is misspelled in comment
 main.go:1:59: "seperate" is misspelled in comment
 main.go:10:21: "_nothign_" is misspelled in comment
 main.go:13:21: "misktaes" is misspelled in string
 main.go:13:56: "litreals" is misspelled in string
-main.go:14:20: "fo" is misspelled in string
 main.go:14:27: "_errirs_" is misspelled in string
 main.go:14:81: "thes" is misspelled in string
 main.go:14:90: "thet" is misspelled in string

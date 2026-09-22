@@ -10,6 +10,8 @@ github.com/kortschak/ct v0.0.0-20140325011614-7d86dffe6951 h1:I12D1A/+qvQfb7cENS
 github.com/kortschak/ct v0.0.0-20140325011614-7d86dffe6951/go.mod h1:5l1kPezpRemBE+Nj0tHiYk9JXHpgYwg0sOC5pvEScm8=
 github.com/kortschak/hunspell v0.0.0-20220305030544-5d8374a03860 h1:fcZyrYpEfwcyQTUVvzf0p0JerPpvp66TpkBlSvTv/Ac=
 github.com/kortschak/hunspell v0.0.0-20220305030544-5d8374a03860/go.mod h1:UX/MV1xVxpegO/g9sSU1oImCQAqLr9Z+70+wjJ11Aq8=
+github.com/kortschak/hunspell v0.0.0-20260922074449-4f26add876a0 h1:UTOUuy8GVSFxRGsAlG+7gJ0fVRtug4jbLNO0RsbWLZs=
+github.com/kortschak/hunspell v0.0.0-20260922074449-4f26add876a0/go.mod h1:N9S3cjGBcIBAsz5OzbzYoj5ZhYIaJUclSmTfsveftrQ=
 github.com/kr/pretty v0.1.0/go.mod h1:dAy3ld7l9f0ibDNOQOHHMYYIIbhfbHSm3C4ZsoJORNo=
 github.com/kr/pty v1.1.1/go.mod h1:pFQYn66WHrOpPYNljwOMqo10TkYh1fy3cYio2l3bCsQ=
 github.com/kr/text v0.1.0/go.mod h1:4Jbv+DJW3UT/LiOwJeYQe1efqtUx/iVham/4vfdArNI=
